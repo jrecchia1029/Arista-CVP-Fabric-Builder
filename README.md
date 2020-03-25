@@ -16,7 +16,7 @@ cd Arista-CVP-Fabric-Builder/
 - python3 is required to run the script
 - The modules listed in the requirements.txt file need to be installed
 ```
-pip install -r requirements.txt
+pip install -r FabricBuilder/requirements.txt
 ```
 
 ### Navigate into the FabricBuilder directory
