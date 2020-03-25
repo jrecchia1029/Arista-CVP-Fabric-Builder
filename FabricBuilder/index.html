@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.css" type="text/css" />
+    <link rel="stylesheet" href="https://bossanova.uk/jsuites/v2/jsuites.css" type="text/css" />
+    <link rel="stylesheet" href="https://bossanova.uk/jexcel/v3/jexcel.css" type="text/css" />
+
+    <title>Arista Builder</title>
+    <style type="text/css">
+		.button {
+			width: 150px;
+			margin: 5px;
+		}
+	</style>
+</head>
+
+<body style="margin: 50px;">
+
+    <div class="row">
+        <div class="col-sm">
+            <h1>Arista Builder</h1>
+        </div>
+        <div class="col-sm">
+            <div id="form_errors" class="alert alert-warning alert-dismissible fade show" style="display: none"></div>
+        </div>
+        <div class="col-sm">
+			<div class="btn-group-toggle" data-toggle="buttons">
+			  <label class="btn btn-outline-warning">
+			    <input id="autoexec" type="checkbox" autocomplete="off"> Auto-execute tasks
+			  </label>
+			</div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-2">
+       		<input type="text" class="form-control" id="cvpuser" aria-describedby="emailHelp" placeholder="CVP username">
+       		<input type="password" class="form-control" id="cvppass" aria-describedby="emailHelp" placeholder="CVP password">
+       		<br/>
+            <button class="btn btn-primary l3ls button" onclick="run(1)" data-toggle="modal" data-target="#deployModal">Deploy L3LS</button>
+            <br/>
+            <button class="btn btn-primary vlans button" onclick="run(2)">Add VLANS</button>
+            <br/>
+            <button class="btn btn-primary pre button" onclick="run(99)" data-toggle="modal" data-target="#deployModal">Pre-check</button>
+            <br/>
+<!--
+            <button class="btn btn-primary merge button">Merge configlets</button>
+            <br/>
+            <button class="btn btn-primary remove button">Remove configlets</button>
+            <br/>
+            <br/>
+        -->
+            <button class="btn btn-primary button" data-toggle="modal" data-target="#uploadModal">Upload file</button>
+            <br/>
+            <button class="btn btn-primary write button">Write File</button>
+            <br/>
+            <button class="btn btn-primary l3ls button" data-toggle="modal" data-target="#deployModal" >View log</button>
+        </div>
+        <div class="col-10">
+            <div id="tabs" style="overflow:scroll;">
+                <ul id="tabTitles">
+
+                </ul>
+
+            </div>
+        </div>
+
+    </div>
+    <div class="modal fade" id="uploadModal" tabindex="-1" role="dialog" aria-labelledby="uploadModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="uploadModalLabel">Upload</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form action="">
+                        <div class="form-group">
+                            <input type="file" class="form-control-file" id="file" name="myFile">
+                        </div>
+                    </form>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="upload">Upload</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal fade" id="deployModal" tabindex="-1" role="dialog" aria-labelledby="deployModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deployModalLabel">Deployment Logs</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p id="deploy_log" style="max-height:500px;overflow:scroll;white-space: pre-line;font-size:12px;overflow-x:scroll;"></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js" type="text/javascript"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js" type="text/javascript"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous" type="text/javascript"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous" type="text/javascript"></script>
+    <script src="https://bossanova.uk/jexcel/v3/jexcel.js" type="text/javascript"></script>
+    <script src="https://bossanova.uk/jsuites/v2/jsuites.js" type="text/javascript"></script>
+
+    <script type="text/javascript">
+        var tabs = [];
+        var tables = [];
+        var run = null;
+        var deployModal = null;
+        var brokeScroll = false;
+        $(document).ready(function() {
+            function bootstrap_alert(elem, message) {
+                $(elem).show().html('<div class="" role="alert">' + message + '<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>');
+            };
+            
+            $('#deploy_log').scroll(function(e) {
+              if ($(this).is(':animated')) {
+                  null
+              } else if (e.originalEvent) {
+                  if(e.target.scrollTop + e.target.clientHeight == e.target.scrollHeight){
+                    brokeScroll = false;
+                  }else{
+                    brokeScroll = true;
+                  }
+              } else {
+                  null
+              }
+          	});
+            $('#deployModal').on('show.bs.modal', function (event) {
+              
+              var modal = $(this)
+              var text;
+              
+              deployModal = setInterval(() => {
+                el = modal.find('#deploy_log')
+                $.ajax({
+                  url: '/log',
+                  type: "GET",
+                  async: false,
+                  success: function(result) {
+                      el.text(JSON.parse(result))
+                      
+                  }
+           	  	});
+                if(!brokeScroll){
+                  el.animate({
+                    scrollTop: el.prop("scrollHeight")
+                  });
+                }
+                
+              }, 1000);
+            });
+            
+			$('#deployModal').on('hide.bs.modal', function (event) {
+              
+              clearInterval(deployModal);
+            });
+            
+            logReader = function(){
+              
+              el = modal.find('#deploy_log')
+              $.ajax({
+                url: '/log',
+                type: "GET",
+                async: false,
+                success: function(result) {
+                    el.text(JSON.parse(result))
+                    
+                }
+         	  	});
+
+              el.animate({
+                scrollTop: el.prop("scrollHeight")
+              });
+            }
+            run = function(op) {
+              var autoexec = document.getElementById('autoexec').checked;
+              autoexec = autoexec ? 1:0;
+              var cvpuser = document.getElementById('cvpuser').value;
+              var cvppass = document.getElementById('cvppass').value;
+              $.ajax({
+                url: '/run',
+                type: "POST",
+                data: JSON.stringify({"operation":op, "autoexec":autoexec, "cvpuser":cvpuser, "cvppass":cvppass}),
+                contentType: 'application/json',
+                dataType: 'json',
+                success: function(result) {
+                    bootstrap_alert('#form_errors', 'Run success: ' + result)
+                    
+                },
+                error: function(error) {
+                    bootstrap_alert('#form_errors', 'Run error: ' + error)
+
+                }
+           	  });
+            };
+            
+            $.ajax({
+                url: '/readfile',
+                type: "GET",
+                success: function(result) {
+                    result = JSON.parse(result)
+                    var i = 1;
+                    for (var key of Object.keys(result)) {
+                        $('#tabTitles').append('<li><a href="#tabs-' + i + '">' + key + '</a></li>');
+                        $('#tabs').append('<div id="tabs-' + i + '"></div>');
+                        tables.push($('#tabs-' + i).jexcel(result[key]));
+                        tabs.push(key);
+                        i++
+                    };
+                    $("#tabs").tabs();
+                },
+                error: function(error) {
+                    bootstrap_alert('#form_errors', 'Read error: ' + error)
+
+                }
+            });
+            
+            $('.write').click(function() {
+                toSave = [];
+                var i = 0;
+                for (var table of tables) {
+                    data = table.getData();
+                    data.unshift(table.getHeaders().split(','));
+                    data.unshift(tabs[i]);
+                    toSave.push(data);
+                    i++;
+                };
+                $.ajax({
+                    type: "POST",
+                    url: '/writefile',
+
+                    data: JSON.stringify(toSave),
+                    success: function(result) {
+                        bootstrap_alert('#form_errors', 'Write success')
+                    },
+                    error: function(error) {
+                        bootstrap_alert('#form_errors', 'Write error: ' + error)
+
+                    },
+                    contentType: 'application/json',
+                    dataType: 'json'
+                })
+            });
+            
+            $("form").submit(function(evt) {
+                evt.preventDefault();
+                var formData = new FormData($(this)[0]);
+                $.ajax({
+                    url: '/upload',
+                    type: 'POST',
+                    data: formData,
+                    async: false,
+                    cache: false,
+                    contentType: false,
+                    enctype: 'multipart/form-data',
+                    processData: false,
+                    success: function(response) {
+                        $("#uploadModal").modal("hide");
+                        bootstrap_alert('#form_errors', 'Upload success')
+                        location.reload();
+                    },
+                    error: function(error) {
+                        $("#uploadModal").modal("hide");
+                        bootstrap_alert('#form_errors', 'Upload error: ' + error)
+
+                    }
+                });
+            });
+            
+            $('#upload').click(function() {
+                $("form").submit();
+            })
+        })
+    </script>
+
+</body>
+
+</html>
