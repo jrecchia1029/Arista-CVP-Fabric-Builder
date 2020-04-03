@@ -1082,13 +1082,13 @@ def get_telemetry_statement(cvp):
     global logger
     #get telemetry builder ID
     logger.debug("Retrieving existing configlets")
-    configlets = cvp.api.get_configlets()["data"]
-    logger.debug("Retrieved {} configlets".format(len(configlets)))
-    builder_id = None
-    for configlet in configlets:
-        if re.match(r'(?i)SYS_TelemetryBuilderV3', configlet["name"]):
-            builder_id = configlet["key"]
-            break
+    configlet = cvp.api.get_configlet_by_name("SYS_TelemetryBuilderV3")
+    if configlet is None:
+        logger.error("SYS_TelemetryBuilderV3 does not exist.  Unable to generate TerminAttr configuration.")
+        return
+    builder_id = configlet['key']
+    logger.debug("Successfully retrieved {}".format(len(configlet['name'])))
+
     logger.debug("SYS_TelemtryBuilder configlet id is {}".format(builder_id))
     #get config from telemetry builder
     if builder_id is not None:
@@ -1106,8 +1106,8 @@ def get_telemetry_statement(cvp):
             "containerToId": "",
             "mode": "preview"
             }
-        logger.debug("Generating TerminAttr statement for devices")
     try:
+        logger.debug("Generating TerminAttr statement for devices")
         return  cvp.api.generate_configlet_builder_preview(data)["data"]
     except:
         return None
@@ -1133,11 +1133,26 @@ def run_script(operation=None,autoexec=None,cvpuser=None,cvppass=None):
     # return
     logger.info("Parsing spreadsheet")
     info_location = "./workbook.xls"
-    leafs = parseLeafInfoExcel(info_location)
-    spines = parseSpineInfoExcel(info_location)
-    day_2_target_devices = parseDay2Targets(info_location)
-    global_options = parseGeneralInfoExcel(info_location)
-    global_options = cleanup_variable_values(global_options)
+    leafs = parseLeafInfoExcel(info_location, logger)
+    if leafs is None:
+        logger.error("FAILED: Unable to parse leafs from spreadsheet.")
+        return
+    spines = parseSpineInfoExcel(info_location, logger)
+    if spines is None:
+        logger.error("FAILED: Unable to parse spines from spreadsheet.")
+        return
+    day_2_target_devices = parseDay2Targets(info_location, logger)
+    if day_2_target_devices is None:
+        logger.error("FAILED: Unable to parse day 2 target devices from spreadsheet.")
+        return
+    global_options = parseGeneralInfoExcel(info_location, logger)
+    if global_options is None:
+        logger.error("FAILED: Unable to parse global variables from spreadsheet.")
+        return
+    global_options = cleanup_variable_values(global_options, logger)
+    if global_options is None:
+        logger.error("FAILED: Missing keys in 'Global Variables L3LS' sheet.")
+        return
 
     #Update P2P connection info
     for i, spine in enumerate(spines):
@@ -1187,15 +1202,21 @@ def run_script(operation=None,autoexec=None,cvpuser=None,cvppass=None):
         logger.info("FAILURE: Failed to log into CVP")
         return
     logger.info("Successfully logged into CVP")
-    #Get telemetry statement
-    logger.info("Generating telemetry statement")
-    telemetry_statement = get_telemetry_statement(cvp)
-    telemetry_statement = telemetry_statement if telemetry_statement is not None else ""
+
     if int(option) == 1:
         #Configure a layer 3 leaf spine based on inputs in spreadsheet
         # check = input("WARNING: The program is using the Excel spreadsheet as a source of truth. Configurations created will only take into account what is present in spreadsheet. Existing configurations may be overwritten by what is produced from running this script.  Do you wish to continue? (yes/no)")
         # if not re.match(r'(?i)y|ye|yes', check):
         #     sys.exit(0)
+
+        #Get telemetry statement
+        #Get telemetry statement
+        logger.info("Generating telemetry statement")
+        telemetry_statement = get_telemetry_statement(cvp)
+        if telemetry_statement is None:
+            logger.error("FAILED to generate TerminAttr configuration")
+            return
+        logger.info("Successfully generated TerminAttr configuration")
 
         logger.info("Deploying Layer 3 Leaf Spine")
         logger.info("Starting leaf deployments")
@@ -1273,6 +1294,25 @@ def run_script(operation=None,autoexec=None,cvpuser=None,cvppass=None):
         pass
     #Pre-Deployment Check
     elif int(option) == 99:
+        #Check containers exist in CVP
+        logger.info("Checking for containers listed in the spreadsheet that are not in CVP...")
+        containers = cvp.api.get_containers()["data"]
+        container_names = [container['name'] for container in containers]
+        containers_missing = False
+        for leaf in leafs:
+            if leaf.container_name not in container_names:
+                logger.error("Leaf {}'s Container {} does not exist in CVP".format(leaf.hostname, leaf.container_name))
+                containers_missing = True
+        for spine in spines:
+            if spine.container_name not in container_names:
+                logger.error("Spine {}'s Container {} does not exist in CVP".format(spine.hostname, leaf.container_name))
+                containers_missing = True
+        if containers_missing is True:
+            logger.error("FAILED container check")
+        else:
+            logger.info("SUCCESS: All containers in spreadsheet found in CVP")
+
+        #Check switches exist in CVP
         switches_not_in_inventory = []
         switch_dicts = []
         logger.info("Checking for switches in the spreadsheet that are not in CVP's inventory...")
@@ -1289,25 +1329,187 @@ def run_script(operation=None,autoexec=None,cvpuser=None,cvppass=None):
             else:
                 switches_not_in_inventory.append(spine)
 
+        #Check for switches in inventory
         if len(switches_not_in_inventory) > 0:
-            logger.info("FAIL: Unable to find the following siwtches in CVP inventroy.  Please verify the serial numbers:")
+            logger.info("FAIL: Unable to find the following switches in CVP inventroy.  Please verify the serial numbers:")
             for switch in switches_not_in_inventory:
                 logger.info("    {}--{}".format(switch.hostname, switch.serial_number))
 
         else:
             logger.info("SUCCESS: All switches in spreadsheet found in inventory\n")
+
+        #Verify mlag neighbors are legit
+        logger.info("Checking MLAG pairs...")
+        mlag_error = False
+        seen_mlag_pairs = {}
+        hostnames_in_spreadsheet = [leaf.hostname for leaf in leafs]
+        for leaf in leafs:
+            if leaf.mlag_peer != "":
+                if leaf.mlag_peer not in hostnames_in_spreadsheet:
+                    logger.error("Unable to find {} in switch inventory".format(leaf.mlag_peer))
+                    mlag_error = True
+                elif leaf.mlag_peer == leaf.hostname:
+                    logger.error("{}'s MLAG pair is itself. This is not allowed.".format(leaf.hostname))
+                    mlag_error = True
+                else:         
+                    seen_mlag_pairs[leaf.hostname] = leaf.mlag_peer
+        for k, v in seen_mlag_pairs.items():
+            try:
+                if seen_mlag_pairs[v] != k:
+                    logger.error("{} has {} listed as its MLAG peer but {} does not have {} listed as its MLAG peer".format(k, v, v, k))
+                    mlag_error = True
+            except KeyError as e:
+                mlag_error = True
+        if mlag_error is True:
+            logger.error("FAILED: invalid MLAG pairs exist in spreadsheet")
+        else:
+            logger.info("SUCCESS: All MLAG pairs appear to be valid")
+        
+        #Verify IP addresses used are valid
+        logger.info("Checking if IP addresses are valid")
+        ip_address_re = r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/\d{1,2}'
+        seen_ip_addresses = {}
+        for leaf in leafs:
+            #Check management addresses
+            # Validity check 
+            if not re.match(ip_address_re, leaf.mgmt_address):
+                logger.error("{}'s has an invalid Management IP address".format(leaf.hostname))
+            #Duplicate check
+            elif leaf.mgmt_address in seen_ip_addresses:
+                logger.error("{} is using the same Management IP Address as {}".format(leaf.hostname, seen_ip_addresses[leaf.mgmt_address]))
+            #All good
+            else:
+                seen_ip_addresses[leaf.mgmt_address] = leaf.hostname
+
+            #Check loopback 0 addresses
+            # Validity check 
+            if not re.match(ip_address_re, leaf.underlay_address):
+                logger.error("{}'s has an invalid Loopback0 IP address".format(leaf.hostname))
+            #Duplicate check
+            elif leaf.underlay_address in seen_ip_addresses:
+                logger.error("{} is using the same Loopback0 IP Address as {}".format(leaf.hostname, seen_ip_addresses[leaf.underlay_address]))
+            #All good
+            else:
+                seen_ip_addresses[leaf.underlay_address] = leaf.hostname
+
+            #Check loopback1 addresses
+            # Validity check 
+            if not re.match(ip_address_re, leaf.overlay_address):
+                logger.error("{}'s has an invalid Loopback1 IP address".format(leaf.hostname))
+
+            #Check transit interface connections
+            for connection_info in leaf.spine_connection_info.values():
+                if connection_info["local"]["IP Address"] != "":
+                    #check to see if local address is valid
+                    if not re.match(ip_address_re, connection_info["local"]["IP Address"]):
+                        logger.error("{}'s {} IP address is invalid.".format(leaf.hostname, connection_info["local"]["Interface"]))
+                    
+                    #Check to see if address is duplicate
+                    if connection_info["local"]["IP Address"] in seen_ip_addresses:
+                        logger.error("{} is already being used by {}".format(connection_info["local"]["IP Address"], seen_ip_addresses[connection_info["local"]["IP Address"]]))
+
+                    seen_ip_addresses[ connection_info["local"]["IP Address"] ] = leaf.hostname
+
+                    #check to see if remote address is valid
+                    if not re.match(ip_address_re, connection_info["remote"]["IP Address"]):
+                        logger.error("{}'s {} IP address is invalid.".format(connection_info["remote"]["Hostname"], connection_info["remote"]["Interface"]))
+
+                    #Check to see if address is duplicate
+                    if connection_info["remote"]["IP Address"] in seen_ip_addresses:
+                        logger.error("{} is already being used by {}".format(connection_info["remote"]["IP Address"], seen_ip_addresses[connection_info["remote"]["IP Address"]]))
+                    seen_ip_addresses[connection_info["remote"]["IP Address"]] = connection_info["remote"]["Hostname"]
+                    #check to see if addresses are on same subnet
+                    try:
+                        if ipaddress.IPv4Interface(connection_info["local"]["IP Address"]).network != ipaddress.IPv4Interface(connection_info["remote"]["IP Address"]).network:
+                            logger.error("{}'s transit connection to {} is using IP addresses on different subnets".format(
+                                leaf.hostname, connection_info["remote"]["Hostname"]))
+                    except:
+                        continue
+
+        for spine in spines:
+            #Check management addresses
+            # Validity check 
+            if not re.match(ip_address_re, spine.mgmt_address):
+                logger.error("{}'s has an invalid Management IP address".format(spine.hostname))
+            #Duplicate check
+            elif spine.mgmt_address in seen_ip_addresses:
+                logger.error("{} is using the same Management IP Address as {}".format(spine.hostname, seen_ip_addresses[spine.mgmt_address]))
+            #All good
+            else:
+                seen_ip_addresses[spine.mgmt_address] = spine.hostname
+
+            #Check loopback 0 addresses
+            # Validity check 
+            if not re.match(ip_address_re, spine.underlay_address):
+                logger.error("{}'s has an invalid Loopback0 IP address".format(spine.hostname))
+            #Duplicate check
+            elif spine.underlay_address in seen_ip_addresses:
+                logger.error("{} is using the same Loopback0 IP Address as {}".format(spine.hostname, seen_ip_addresses[spine.underlay_address]))
+            #All good
+            else:
+                seen_ip_addresses[spine.underlay_address] = spine.hostname
+        logger.info("Finished checking switch IP addresses.")
+
+        #Check BGP Neighbor details
+        logger.info("Checking BPG neighbor details")
+        for spine in spines:
+            #Check accepted BGP ASNs
+            beginning_asn, end_asn = int(spine.asn_range.split("-")[0].strip()), int(spine.asn_range.split("-")[1].strip())
+            for leaf in leafs:
+                # logger.info("{} < {} < {} : {}".format(beginning_asn, leaf.asn, end_asn, (int(leaf.asn) >= beginning_asn and int(leaf.asn) <= end_asn)))
+                if not (int(leaf.asn) >= beginning_asn and int(leaf.asn) <= end_asn):
+                    logger.error("{}'s ASN is outside of {}'s accepted ASN range".format(leaf.hostname, spine.hostname))
+            
+            #Check transit address range peering
+            try:
+                spine_transit_range = ipaddress.IPv4Network(spine.transit_ip_range)
+                # logger.info("Created spine transit address listen range")
+            except:
+                logger.error("{} has an invalid value for Transit IP Range".format(spine.hostname))
+                spine_transit_range = None
+            if spine_transit_range is not None:
+                for leaf in leafs:
+                    for connection_info in leaf.spine_connection_info.values():
+                        if connection_info["local"]["IP Address"] == "" or connection_info["remote"]["Hostname"] != spine.hostname:
+                            continue
+                        try:
+                            ip_addr = ipaddress.IPv4Address(connection_info["local"]["IP Address"].split("/")[0])
+                            # logger.info("Created IP address object of {}'s IP address {}".format(leaf.hostname, connection_info["local"]["IP Address"]))
+                        except:
+                            continue
+                        # logger.debug("Is {} in {}? {}".format(str(ip_addr), spine.transit_ip_range, ip_addr in spine_transit_range.hosts()))
+                        if ip_addr not in spine_transit_range.hosts():
+                            logger.error("{}'s {}'s IP address ({}) is outside of {}'s BGP neighbor IP address listen range".format(leaf.hostname, connection_info["local"]["Interface"], connection_info["local"]["IP Address"], spine.hostname))
+            #Check underlay loopback address range peering
+            try:
+                spine_underlay_address_range = ipaddress.IPv4Network(spine.underlay_loopback_ip_range)
+            except:
+                logger.error("{} has an invalid value for Transit IP Range".format(spine.hostname))
+                spine_underlay_address_range = None
+            if spine_underlay_address_range is not None:          
+                for leaf in leafs:
+                    try:
+                        ip_addr = ipaddress.IPv4Address(leaf.underlay_address.split("/")[0])
+                    except:
+                        continue
+                    if ip_addr not in spine_underlay_address_range.hosts():
+                        logger.error("{}'s Loopback0 IP address ({}) is outside of {}'s BGP neighbor IP address listen range".format(leaf.hostname, leaf.underlay_address, spine.hostname))
+
+        logger.info("Finished checking BPG neighbor details")
+
+
+        #Verify that all chipsets are accounted for
         logger.info("Checking to see that all chipsets are accounted for...")
         chipset_check(switch_dicts, logger)
+
+        logger.info("Finished pre-deployment check")
 
 #########################################################################################################
 #########################################################################################################
 #########################################################################################################
 
 def main():
-
     global execute_tasks
-        
-    
     cherrypy.quickstart(Handler(),'/',config = config)
 
 

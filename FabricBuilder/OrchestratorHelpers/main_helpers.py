@@ -45,7 +45,32 @@ def printConfiglet(configlet_name, config):
     print(config)
     print("*"*70)
 
-def cleanup_variable_values(global_options):
+def cleanup_variable_values(global_options, logger):
+    #Verify we have all keys:
+    missing_key_flag = False
+    global_variable_keys = {
+        "GENERAL": ["Underlay Source Interface", "Overlay Source Interface", "NAT Loopback"],
+        "MANAGEMENT": ["Default Gateway", "VRF", "VRF Route-Distinguisher"],
+        "MLAG": ["Domain ID", "SVI Address Range", "Port-Channel Number", "Vlan", "Trunk Group Name", "Virtual Mac Address",
+        "Dual Primary Detection Delay", "Dual Primary Detection Action", "Peer Address Heartbeat"],
+        "IBGP Between MLAG Peers":["IBGP", "Peering SVI", "SVI Address Range", "Peer Group Name", "Maximum Routes", "Password"],
+        "BGP": ["Underlay Peer Group Name", "Overlay Peer Group Name", "Route-Map Name", "Underlay Prefix List Name", "Loopback Prefix List Name",
+        "BFD in Underlay", "BFD in Overlay", "Password", "Spine Peer Filter Name"],
+        "VXLAN":["Vxlan Data Plane", "Vxlan Control Plane", "UDP Port"],
+        "CVX":["Primary CVX IP Address", "Secondary CVX IP Address", "Tertiary CVX IP Address"],
+        "EVPN":["Model"]
+        }
+    for primary_key, secondary_keys in global_variable_keys.items():
+        if primary_key not in global_options.keys():
+            logger.error("Unable to find primary key  '{}' in 'Global Variables L3LS' sheet.".format(primary_key))
+            missing_key_flag = True
+            continue
+        for secondary_key in secondary_keys:
+            if secondary_key not in global_options[primary_key].keys():
+                logger.error("Unable to find secondary key '{}' in 'Global Variables L3LS' sheet.".format(secondary_key))
+                missing_key_flag = True
+    if missing_key_flag is True:
+        return None
     global_options["GENERAL"]["Underlay Source Interface"] = global_options["GENERAL"]["Underlay Source Interface"].replace(" ", "")
     global_options["GENERAL"]["Overlay Source Interface"] = global_options["GENERAL"]["Overlay Source Interface"].replace(" ", "")
     global_options["GENERAL"]["NAT Loopback"] =  global_options["GENERAL"]["NAT Loopback"].replace(" ", "")
