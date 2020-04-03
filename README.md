@@ -4,11 +4,11 @@
 
 These instructions will get you a copy of the project up and running on your local machine.
 
-First clone the repository to your local machine and navigate to the Arista-CVP-Fabric-Builder directory
+First clone the repository to your local machine and navigate to the Arista-CVP-Fabric-Builder/FabricBuilder directory
 
 ```
 git clone git@github.com:jrecchia1029/Arista-CVP-Fabric-Builder.git
-cd Arista-CVP-Fabric-Builder/
+cd Arista-CVP-Fabric-Builder/FabricBuilder
 ```
 
 
@@ -17,12 +17,6 @@ cd Arista-CVP-Fabric-Builder/
 - The modules listed in the requirements.txt file need to be installed
 ```
 pip install -r FabricBuilder/requirements.txt
-```
-
-### Navigate into the FabricBuilder directory
-
-```
-cd FabricBuilder
 ```
 
 ### Run the script using a version of python3
