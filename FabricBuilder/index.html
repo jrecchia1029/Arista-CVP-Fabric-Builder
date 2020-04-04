@@ -31,11 +31,13 @@
             <div id="form_errors" class="alert alert-warning alert-dismissible fade show" style="display: none"></div>
         </div>
         <div class="col-sm">
+        <!--
 			<div class="btn-group-toggle" data-toggle="buttons">
 			  <label class="btn btn-outline-warning">
 			    <input id="autoexec" type="checkbox" autocomplete="off"> Auto-execute tasks
-			  </label>
-			</div>
+			  </label> 
+            </div>
+        -->
         </div>
     </div>
     <div class="row">
@@ -198,8 +200,9 @@
               });
             }
             run = function(op) {
-              var autoexec = document.getElementById('autoexec').checked;
-              autoexec = autoexec ? 1:0;
+            //   var autoexec = document.getElementById('autoexec').checked;
+            //   autoexec = autoexec ? 1:0;
+              var autoexec = 0
               var cvpuser = document.getElementById('cvpuser').value;
               var cvppass = document.getElementById('cvppass').value;
               $.ajax({
