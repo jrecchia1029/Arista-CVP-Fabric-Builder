@@ -68,10 +68,6 @@ class Switch():
         if type(commands) == str:
             commands = [commands]
 
-        if self.ip_address is not None:
-            url = "https://{}:{}@{}/command-api".format(self.username, self.password, self.ip_address)
-
-
         try:
             switch = pyeapi.connect(host=self.ip_address, username=self.username, password=self.password)
             if enable==True:
@@ -82,13 +78,16 @@ class Switch():
             print(e)
             return None
         else:
-            response = response["result"]
+            result = []
+            tmp_result = response["result"]
             if enable==True:
-                response.pop(0)
-            for index, output in enumerate(response):
+                tmp_result.pop(0)
+            for index, output in enumerate(tmp_result):
+                if enable==True:
+                    i = index + 1
                 for k, v in output.items():
-                    output[commands[index + 1]] = output.pop(k)
-            return response
+                    result.append({commands[i]:output["output"]})
+            return result
 
     def send_commands_via_netmiko(self, commands, enable=True):
 
