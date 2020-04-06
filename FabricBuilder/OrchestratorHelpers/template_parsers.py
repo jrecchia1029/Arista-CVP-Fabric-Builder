@@ -55,6 +55,9 @@ def parseLeafInfoExcel(leaf_info_file, logger):
         except KeyError as e:
             logger.error("Unable to find column: {} in 'Leaf Info' sheet.".format(str(e)))
             return None
+        except Exception as e:
+            logger.error("Issue parsing value for {}".format(leaf_info["Hostname"]))
+            return None
     return leafs
 
 def parseSpineInfoExcel(spine_info_file, logger):
@@ -95,6 +98,9 @@ def parseSpineInfoExcel(spine_info_file, logger):
                 transit_ip_range, underlay_loopback_ip_range, ecmp_paths, image_bundle))
         except KeyError as e:
             logger.error("Unable to find column: {} in 'Spine Info' sheet.".format(str(e)))
+            return None
+        except Exception as e:
+            logger.error("Issue parsing value for {}".format(spine_info["Hostname"]))
             return None
     return spines    
 
@@ -183,12 +189,15 @@ def parseVlans(general_info_file, logger):
                 "Name": vlan["Name"].strip(),
                 "Vrf": vlan["Vrf"].strip(),
                 "Stretched": vlan["Stretched"],
-                "VNI": vlan["VNI"],
+                "VNI": int(vlan["VNI"]),
                 "Route Distinguisher": vlan["Route Distinguisher"],
                 "DHCP Helper Addresses": [address.strip() for address in vlan["DHCP Helper Addresses"].split(",")]
                 }
         except KeyError as e:
             logger.error("Unable to find column: {} in 'Vlan' sheet.".format(str(e)))
+            return None
+        except Exception as e:
+            logger.error("Issue parsing value for {}".format(vlan))
             return None
     return vlan_info
 
@@ -221,6 +230,9 @@ def parseVrfs(general_info_file, logger):
             }
         except KeyError as e:
             logger.error("Unable to find column: {} in 'Vrfs' sheet.".format(str(e)))
+            return None
+        except Exception as e:
+            logger.error("Issue parsing value for {}".format(vrf))
             return None
     return vrf_info
 
