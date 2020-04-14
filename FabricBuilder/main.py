@@ -890,7 +890,7 @@ def addVlansToLeaf(leaf):
             vlan_info["SVI Address"] = info["SVI Address"]
             vlan_info["Vrf"] = info["Vrf"]
             vlan_info["Stretched"] = bool(int(info["Stretched"]))
-            vlan_info["VNI"] = info["VNI"]
+            vlan_info["VNI"] = int(info["VNI"])
             if info["Route Distinguisher"] is not None and info["Route Distinguisher"] != "":
                 rd_pre_colon = info["Route Distinguisher"].split(":")[0].strip()
                 rd_post_colon = info["Route Distinguisher"].split(":")[1].strip()

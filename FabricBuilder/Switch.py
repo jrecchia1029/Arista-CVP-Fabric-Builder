@@ -954,6 +954,8 @@ class Switch():
                 interface_config += "   vrf {}\n".format(info["Vrf"])
             if virtual_address_mode == "ip address virtual":
                 interface_config += "   ip address virtual {}\n".format(info["SVI Address"])
+                if info["SVI Address Secondary"] != "":
+                    interface_config += "   ip address virtual {} secondary\n".format(info["SVI Address Secondary"])
             elif virtual_address_mode == "ip virtual-router address":
                 interface_config += "   ip virtual-router address {}\n".format(info["SVI Address"].split("/")[0])
             if info["DHCP Helper Addresses"][0] != "" and dhcp_helper_interface is not None:

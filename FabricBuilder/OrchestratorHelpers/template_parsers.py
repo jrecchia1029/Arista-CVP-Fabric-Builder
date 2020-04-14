@@ -186,6 +186,7 @@ def parseVlans(general_info_file, logger):
         try:
             vlan_info[int(vlan["Vlan"])] = {
                 "SVI Address": vlan["SVI Address"].strip(),
+                "SVI Address Secondary": vlan["SVI Address Secondary"].strip(),
                 "Name": vlan["Name"].strip(),
                 "Vrf": vlan["Vrf"].strip(),
                 "Stretched": vlan["Stretched"],
