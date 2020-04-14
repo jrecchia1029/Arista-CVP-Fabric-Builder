@@ -435,7 +435,7 @@ class Switch():
             if bfd == True:
                 bgp_underlay_config.append("   neighbor {} bfd".format(peer_group_name))
             if pwd is not None:
-                bgp_underlay_config.append("   neighbor {} password {}".format(peer_group_name, pwd))
+                bgp_underlay_config.append("   neighbor {} password 7 {}".format(peer_group_name, pwd))
             bgp_underlay_config.append("   neighbor {} send-community".format(peer_group_name))
             bgp_underlay_config.append("   neighbor {} maximum-routes {}".format(peer_group_name, max_routes))
             for remote_as, bgp_neighbors in remote_ases_and_neighbors.items():
@@ -475,7 +475,7 @@ class Switch():
             if bfd == True:
                 bgp_underlay_config.append("   neighbor {} bfd".format(peer_group_name))
             if pwd is not None:
-                bgp_underlay_config.append("   neighbor {} password {}".format(peer_group_name, pwd))
+                bgp_underlay_config.append("   neighbor {} password 7 {}".format(peer_group_name, pwd))
             bgp_underlay_config.append("   neighbor {} send-community".format(peer_group_name))
             bgp_underlay_config.append("   neighbor {} maximum-routes {}".format(peer_group_name, max_routes))
             for remote_as, bgp_neighbors in remote_ases_and_neighbors.items():
@@ -615,7 +615,7 @@ class Switch():
             if bfd == True:
                 bgp_underlay_config.append("   neighbor {} bfd".format(peer_group_name))
             if pwd is not None:
-                bgp_underlay_config.append("   neighbor {} password {}".format(peer_group_name, pwd))
+                bgp_underlay_config.append("   neighbor {} password 7 {}".format(peer_group_name, pwd))
             bgp_underlay_config.append("   neighbor {} maximum-routes {}".format(peer_group_name, max_routes))
             if route_map is not None and prefix_lists is not None:
                 bgp_underlay_config.append("   redistribute connected route-map {}".format(next(iter(route_map))))
@@ -649,7 +649,7 @@ class Switch():
             if bfd == True:
                 bgp_underlay_config.append("   neighbor {} bfd".format(peer_group_name))
             if pwd is not None:
-                bgp_underlay_config.append("   neighbor {} password {}".format(peer_group_name, pwd))
+                bgp_underlay_config.append("   neighbor {} password 7 {}".format(peer_group_name, pwd))
             bgp_underlay_config.append("   neighbor {} send-community".format(peer_group_name))
             bgp_underlay_config.append("   neighbor {} maximum-routes {}".format(peer_group_name, max_routes))
             bgp_underlay_config.append("   !")
@@ -696,7 +696,7 @@ class Switch():
         ibgp_section += "   neighbor {} remote-as {}\n".format(peer_group_name, asn)
         ibgp_section += "   neighbor {} next-hop-self\n".format(peer_group_name)
         if pwd is not None:
-            ibgp_section += "   neighbor {} password {}\n".format(peer_group_name, pwd)
+            ibgp_section += "   neighbor {} password 7 {}\n".format(peer_group_name, pwd)
         ibgp_section += "   neighbor {} send-community\n".format(peer_group_name)
         ibgp_section += "   neighbor {} maximum-routes {}\n".format(peer_group_name, max_routes)
         ibgp_section += "   neighbor {} peer group {}\n".format(ibgp_neighbor_address, peer_group_name)

@@ -888,6 +888,7 @@ def addVlansToLeaf(leaf):
             vlan_info = {}
             vlan_info["Name"] = info["Name"]
             vlan_info["SVI Address"] = info["SVI Address"]
+            vlan_info["SVI Address Secondary"] = info["SVI Address"]
             vlan_info["Vrf"] = info["Vrf"]
             vlan_info["Stretched"] = bool(int(info["Stretched"]))
             vlan_info["VNI"] = int(info["VNI"])
