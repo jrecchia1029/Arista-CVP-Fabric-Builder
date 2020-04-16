@@ -547,8 +547,12 @@ def deployL3LSLeaf(leaf):
         
         #Check config is valid
         configlet_keys = [ configlet["key"] for configlet in configlets_to_apply ]
+
         logger.info("Validating configuration for {}...".format(leaf.hostname))
-        validation = cvp.api.validate_configlets_for_device(device_dict["systemMacAddress"], configlet_keys, page_type="validate")
+        validation_configlet_keys = [ configlet["key"] for configlet in cvp.api.get_configlets_inherited_from_containers(leaf.container_name) ] 
+        for key in configlet_keys:
+            validation_configlet_keys.append(key)
+        validation = cvp.api.validate_configlets_for_device(device_dict["systemMacAddress"], validation_configlet_keys, page_type="validate")
 
         if type(validation["errors"]) == list and len(validation["errors"]) > 0:
             errors = True
@@ -798,7 +802,10 @@ def deployL3LSSpine(spine):
         #Check config is valid
         configlet_keys = [ configlet["key"] for configlet in configlets_to_apply ]
         logger.info("Validating configuration for {}...".format(spine.hostname))
-        validation = cvp.api.validate_configlets_for_device(device_dict["systemMacAddress"], configlet_keys, page_type="validate")
+        validation_configlet_keys = [ configlet["key"] for configlet in cvp.api.get_configlets_inherited_from_containers(spine.container_name) ] 
+        for key in configlet_keys:
+            validation_configlet_keys.append(key)
+        validation = cvp.api.validate_configlets_for_device(device_dict["systemMacAddress"], validation_configlet_keys, page_type="validate")
 
         if type(validation["errors"]) == list and len(validation["errors"]) > 0:
             errors = True
@@ -941,6 +948,8 @@ def addVlansToLeaf(leaf):
             logger.info("Merging existing configlet {} with newly generated vlan configuration".format(configlet_exists["name"]))
             vlan_config = mergeVlanConfigs(vlan_config, configlet_exists["config"])
             logger.info("Successfully merged vlan configs")
+
+
 
         # printConfiglet(configlet_name, vlan_config)
         logger.info("Updating {} in CVP".format(configlet_name))
@@ -1499,9 +1508,9 @@ def run_script(operation=None,autoexec=None,cvpuser=None,cvppass=None):
         logger.info("Finished checking BPG neighbor details")
 
 
-        #Verify that all chipsets are accounted for
-        logger.info("Checking to see that all chipsets are accounted for...")
-        chipset_check(switch_dicts, logger)
+        # #Verify that all chipsets are accounted for
+        # logger.info("Checking to see that all chipsets are accounted for...")
+        # chipset_check(switch_dicts, logger)
 
         logger.info("Finished pre-deployment check")
 
