@@ -309,7 +309,7 @@ class Switch():
 
         reload_delay = (300, 360)
         try:
-            if self.chipset is not None and  chipModelInfo[self.chipset]["family"] == "Sand":
+            if switch_helpers.check_if_model_uses_chip_in_sand_family(self.model) == True:
                 reload_delay = ("780","1020")
         except KeyError as e:
             print("Could not identify chip family for {}\nCheck to see that proper mlag reload delays are applied.".format(self.hostname))
@@ -731,7 +731,7 @@ class Switch():
         vxlan_config.append("!")
 
         try:
-            if self.chipset is not None and chipModelInfo[self.chipset]["family"] == "Sand":
+            if switch_helpers.check_if_model_uses_chip_in_sand_family(self.model) == True:
                 vxlan_config.append("hardware tcam")
                 vxlan_config.append("system profile vxlan-routing")
                 vxlan_config.append("!")

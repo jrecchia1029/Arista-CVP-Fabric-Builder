@@ -180,7 +180,7 @@ def deployL3LSLeaf(leaf):
         # is still in undefined container
         if device_dict["containerName"] != "Undefined":
            logger.warning("{} is already out of the Undefined container".format(device_dict["hostname"]))
-           return
+        #    return
 
         #Set Configlet Prefix
         configlet_prefix = "{}_".format(leaf.hostname)

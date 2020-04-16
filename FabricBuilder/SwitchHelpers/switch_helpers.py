@@ -3,6 +3,7 @@ from collections import OrderedDict
 # from SwitchHelpers.chips import chipModelInfo
 # from SwitchHelpers.models import switchModelInfo
 import ipaddress
+from SwitchHelpers.models import sand_family_model_regexes
 
 def parse_show_interfaces_json(output):
     raw_interface_info = json.loads(output)
@@ -109,6 +110,9 @@ def asn_range_getter(asns):
             
     return asn_ranges
 
-if __name__ == "__main__":
-    asn_range_getter(["65000", "65001", "65002", "65003", "65004", "65006","65009", "65010", "65011", "65015"]) 
-    
+def check_if_model_uses_chip_in_sand_family(model_name):
+    for regex in sand_family_model_regexes:
+        if re.search(regex, model_name):
+            return True
+    return False
+
