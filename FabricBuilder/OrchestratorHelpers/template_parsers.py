@@ -47,10 +47,10 @@ def parseLeafInfoExcel(leaf_info_file, logger):
             spine_connection_info[4] = { "local": {"Interface": leaf_info["Spine 4 - Local Interface"].strip(),"IP Address": leaf_info["Spine 4 - Local IP Address"].strip()},
                 "remote":{"Interface": leaf_info["Spine 4 - Remote Interface"].strip(),"IP Address": leaf_info["Spine 4 - Remote IP Address"].strip(), "Hostname": None}}
 
-            nat_address = leaf_info["NAT Address"].strip() if leaf_info["NAT Address"].strip() != "" else None
+            nat_id = int(leaf_info["NAT ID"].strip()) if leaf_info["NAT ID"].strip() != "" else None
             image_bundle = leaf_info["Image Bundle"].strip() if leaf_info["Image Bundle"].strip() != "" else None
             leafs.append(Leaf(serial_number, container_name, hostname, mgmt_address, mgmt_interface,
-            mlag_peer, mlag_interfaces, asn, underlay_address, overlay_address, spine_connection_info, nat_address, image_bundle
+            mlag_peer, mlag_interfaces, asn, underlay_address, overlay_address, spine_connection_info, nat_id, image_bundle
             ))
         except KeyError as e:
             logger.error("Unable to find column: {} in 'Leaf Info' sheet.".format(str(e)))
@@ -216,10 +216,10 @@ def parseVrfs(general_info_file, logger):
         first_row.append( worksheet.cell_value(0,col))
     # transform the workbook to a list of dictionaries
     for row in range(1, worksheet.nrows):
-        vlan = {}
+        vrf = {}
         for col in range(worksheet.ncols):
-            vlan[first_row[col]]=worksheet.cell_value(row,col)
-        vrfs.append(vlan)
+            vrf[first_row[col]]=worksheet.cell_value(row,col)
+        vrfs.append(vrf)
     for vrf in vrfs:
         try:
             vrf_info[vrf["VRF Name"].strip()] = {
@@ -227,7 +227,9 @@ def parseVrfs(general_info_file, logger):
                 "Route Target": vrf["Route Target"].strip(),
                 "Vlan": int(vrf["Vlan"]),
                 "SVI Address Range": vrf["SVI Address Range"].strip(),
-                "VNI": int(vrf["VNI"])
+                "VNI": int(vrf["VNI"]),
+                "NAT Address Range": vrf["NAT Address Range"].strip(),
+                "NAT Interface": vrf["NAT Loopback Interface"].strip()
             }
         except KeyError as e:
             logger.error("Unable to find column: {} in 'Vrfs' sheet.".format(str(e)))

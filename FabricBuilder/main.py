@@ -476,6 +476,8 @@ def deployL3LSLeaf(leaf):
                             tmp_vrf_info["VNI"] = vrf_info["VNI"]
                             tmp_vrf_info["SVI Address Range"] = vrf_info["SVI Address Range"]
                             tmp_vrf_info["Route Target"] = vrf_info["Route Target"]
+                            tmp_vrf_info["NAT Address Range"] = vrf_info["NAT Address Range"]
+                            tmp_vrf_info["NAT Interface"] = vrf_info["NAT Interface"]
                             
                             vrf_rd = vrf_info["Route Distinguisher"]
                             option_decoder = {"Underlay Address":leaf.underlay_address.split("/")[0],
@@ -490,7 +492,7 @@ def deployL3LSLeaf(leaf):
                                                     bgp_overlay_neighbor_info, 
                                                     underlay_source_interface=underlay_source_interface, peer_group_name=peer_group_name,
                                                     mlag_peer_group_name=mlag_peer_group_name, pwd=pwd,
-                                                    bfd=bfd, vrfs=vrfs_info, role=role, mlag_peer_link=mlag_port_channel)
+                                                    bfd=bfd, vrfs=vrfs_info, role=role, mlag_peer_link=mlag_port_channel, nat_id=leaf.nat_id)
                     logger.debug("Successfully generated EVPN control plane configuration for {}".format(leaf.hostname))
                 elif control_plane == "her":
                     logger.debug("Building Overlay Control Plane for {} using HER".format(leaf.hostname))
@@ -515,35 +517,6 @@ def deployL3LSLeaf(leaf):
             except Exception as e:
                 logger.error("Error configuring Overlay Control Plane Configlet for {}".format(leaf.hostname))
                 logger.error("Error: {}".format(str(e)))
-
-        #Build NAT Configlet
-        try:
-            if leaf.nat_address is not None:
-                logger.info("Building NAT Configlet for {}".format(leaf.hostname))
-                vrf = list(global_options["Vrfs"])[0]
-                logger.debug("Generating NAT configuration for {}".format(leaf.hostname))
-                nat_configlet = ""
-                nat_configlet += "vrf instance {}\n".format(vrf)
-                nat_configlet += "!\n"
-                nat_configlet += "interface {}\n".format(global_options["GENERAL"]["NAT Loopback"])
-                nat_configlet += "   description NAT source for uniqueness\n"
-                nat_configlet += "   vrf {}\n".format(vrf)
-                nat_configlet += "   ip address {}\n".format(leaf.nat_address)
-                nat_configlet += "!\n"
-                nat_configlet += "ip address virtual source-nat vrf {} address {}".format(vrf, leaf.nat_address.split("/")[0])
-                logger.debug("Successfully generated NAT configuration for {}".format(leaf.hostname))
-
-                configlet_name = configlet_prefix + "NAT_Info"
-                logger.debug("Updating {} configlet in CVP".format(configlet_name))
-                updateInCVP(cvp, configlet_name, nat_configlet, leaf.serial_number, apply=False)
-                logger.debug("Successfully updated {} configlet in CVP".format(configlet_name))
-                # printConfiglet(configlet_name, nat_configlet)
-                configlet_info = cvp.api.get_configlet_by_name(configlet_name)
-                configlets_to_apply.append(configlet_info)
-                logger.info("Completed building NAT Configlet for {}".format(leaf.hostname))
-        except Exception as e:
-            logger.error("Error configuring NAT Configlet for {}".format(leaf.hostname))
-            logger.error("Error: {}".format(str(e)))
         
         #Check config is valid
         configlet_keys = [ configlet["key"] for configlet in configlets_to_apply ]
@@ -895,9 +868,10 @@ def addVlansToLeaf(leaf):
             vlan_info = {}
             vlan_info["Name"] = info["Name"]
             vlan_info["SVI Address"] = info["SVI Address"]
-            vlan_info["SVI Address Secondary"] = info["SVI Address"]
+            vlan_info["SVI Address Secondary"] = info["SVI Address Secondary"]
             vlan_info["Vrf"] = info["Vrf"]
             vlan_info["Stretched"] = bool(int(info["Stretched"]))
+            logger.info("Vlan {} - Stretch: {}".format(vlan_info["Name"], vlan_info["Stretched"]))
             vlan_info["VNI"] = int(info["VNI"])
             if info["Route Distinguisher"] is not None and info["Route Distinguisher"] != "":
                 rd_pre_colon = info["Route Distinguisher"].split(":")[0].strip()
@@ -909,15 +883,15 @@ def addVlansToLeaf(leaf):
             else:
                 vlan_info["Route Distinguisher"] = None
             vlan_info["DHCP Helper Addresses"] = info["DHCP Helper Addresses"]
+            vlan_info["DHCP Helper Interface"] = global_options["Vrfs"][info["Vrf"]]["NAT Interface"]
             vlans_info[vlan] = vlan_info
         
         #gathering values for options for mac vrf route distinguisher
         #options are either underlay address, overlay address, or bgp asn
-        dhcp_helper_interface = global_options["GENERAL"]["NAT Loopback"]
         #set vlan info
         vlan_info = vlans_info
         #get vxlan data plan on/off value
-        vxlan = global_options["VXLAN"]["Vxlan Data Plane"]
+        vxlan = bool(int(global_options["VXLAN"]["Vxlan Data Plane"]))
         evpn = True if global_options["VXLAN"]["Vxlan Control Plane"] == "evpn" else False
         #if using evpn for the vxlan control plane
         if evpn == True:
@@ -933,7 +907,7 @@ def addVlansToLeaf(leaf):
         configlet_name = configlet_prefix + "Vlans"
         logger.info("Generating vlan configuration")
         vlan_config = switch.add_vlans(vlan_info, vxlan=vxlan, evpn=evpn, evpn_model=evpn_model, 
-                                            asn=asn, dhcp_helper_interface=dhcp_helper_interface)
+                                            asn=asn)
         logger.info("Successfully generated vlan configuration")
         #Check to see if their is an existing vlan
         logger.info("Checking to see if vlan configlet already exists")
@@ -977,87 +951,6 @@ def addVlansToLeaf(leaf):
 #########################################################################################################
 
 
-def addVRFsToLeaf(leaf):
-    try:
-        switch = Switch(leaf.mgmt_address.split("/")[0], username, password)
-        switch.get_facts()
-        #gathering values for options router-id, vrf route distinguisher, route target
-        asn = leaf.asn
-        router_id = leaf.underlay_address.split("/")[0]
-        #is MLAG enabled
-        if leaf.mlag_peer is not None and leaf.mlag_peer != "":
-            mlag_enabled = True   
-            mgmt_ip_address = leaf.mgmt_address.split("/")[0]
-            mlag_peer_mgmt_ip_address =leaf.mlag_peer_mgmt_address.split("/")[0]
-            #Device with lower management IP address will get the .0 address
-            if mgmt_ip_address < mlag_peer_mgmt_ip_address:
-                role = "primary"
-            #Device with higher management IP address will get the .1 address
-            else:
-                role = "secondary"
-        else:
-            mlag_enabled = False
-            role = None
-        #Prep vrfs_info
-        vrfs_info = {}
-        for vrf, vrf_info in global_options["Vrfs"].items():
-            xcel_translations["vlan"] = global_options["Vrfs"][vrf]["Vlan"]
-            rd_pre_colon = vrf_info["Route Distinguisher"].split(":")[0]
-            rd_post_colon = vrf_info["Route Distinguisher"].split(":")[0]
-            rt_pre_colon = vrf_info["Route Target"].split(":")[0]
-            rt_post_colon = vrf_info["Route Target"].split(":")[0]
-            for translation in xcel_translations:
-                if translation == rd_pre_colon:
-                    vrf_info["Route Distinguisher"] = vrf_info["Route Distinguisher"].replace(rd_pre_colon, xcel_translations[translation])
-                    print(vrf_info["Route Distinguisher"])
-                elif translation == rd_post_colon:
-                    vrf_info["Route Distinguisher"].replace(rd_post_colon, xcel_translations[translation])
-                elif translation == rt_pre_colon:
-                    vrf_info["Route Target"].replace(rt_pre_colon, xcel_translations[translation])
-                elif translation == rt_post_colon:
-                    vrf_info["Route Target"].replace(rt_post_colon, xcel_translations[translation])
-            vrfs_info[vrf] = vrf_info
-        vrfs_info = global_options["Vrfs"]
-
-        configlet_prefix = "{}_".format(switch.hostname)
-        configlet_name = configlet_prefix + "VRFs"
-        vrf_config = switch.add_vrfs(leaf.asn, router_id, mlag_enabled=mlag_enabled, role=role,
-        vrfs_info=vrfs_info)
-
-        #Check to see if their is an existing vrf
-        try:
-            configlet_exists = cvp.api.get_configlet_by_name(configlet_name)
-        except:
-            print ("Configlet {} doesn't exist".format(configlet_name))
-            configlet_exists = None
-        
-        #If a configlet already exists
-        # if configlet_exists != None:
-        #     vrf_config = configlet_exists["config"] + vrf_config
-
-        printConfiglet(configlet_name, vrf_config)
-
-        task_ids = updateInCVP(cvp, configlet_name, vrf_config, switch.fqdn)
-
-        print ("Execute tasks setting is set to", execute_tasks)
-        print (len(task_ids), "task Ids:", task_ids)
-        if execute_tasks == True:
-            for task_id in task_ids:
-                try:
-                    cvp.api.execute_task(task_id)
-                    print ("Executed {}".format(task_id))
-                except Exception as e:
-                    print("Error executing tasks related to {}".format(leaf.hostname))
-                    print( "Error:", e)
-
-
-    except KeyboardInterrupt:
-        print( "Received KeyboardInterrupt")
-        sys.exit()
-    except Exception as e:
-        print("Error creating Vrf Configlet for {}".format(leaf.hostname))
-        print("Error:", e)
-    return
 #########################################################################################################
 def cleanUpDeviceConfiglets(device):
     try:

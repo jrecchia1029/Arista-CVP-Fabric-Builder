@@ -407,7 +407,7 @@ class CvpApi(object):
                 device (dict): The net element device dict for the device if
                     otherwise returns an empty hash.
         '''
-        self.log.debug('get_device_by_name: serial number: %s' % serial_number)
+        self.log.debug('get_device_by_serial_number: serial number: %s' % serial_number)
         data = self.get_inventory(start=0, end=0, provisioned=False)
         if data:
             for netelement in data:
@@ -680,6 +680,49 @@ class CvpApi(object):
         if 'output' in data:
             running_config = data['output']
         return running_config
+
+    def get_parent_containers(self, name):
+        '''
+        Returns a list of parent containers of containers leading up to the root container
+        name - name of edge container
+        '''
+        container_list = []
+        container = self.get_container_by_name(name)
+        container["parentName"] = self.get_container_by_id(container["key"])["parentName"]
+
+        while container["parentName"] != "":
+            container_list.append(container)
+            container = self.get_container_by_name(container["parentName"])
+            container["parentName"] = self.get_container_by_id(container["key"])["parentName"]
+
+        if container["parentName"] == "":
+            container_list.append(container)
+
+        return container_list
+
+    def get_configlets_inherited_from_containers(self, container_name):
+        '''
+        Returns a list of configlet_info dictionaries that device inherits from its contianers in the order they are applied to the device 
+        
+        device_info ( {} ) - device dictionary returned from self.get_devices() or self.get_device_by_name()
+        '''
+
+        #Get parent containers and their associated configlets
+        parent_containers = self.get_parent_containers(container_name)
+        for i, container in enumerate(parent_containers):
+            configlets = self.get_configlets_by_container_id(container["key"])["configletList"]
+            parent_containers[i]["configlets"] = configlets
+
+        #Get configlets applied at higher containers
+        configlets_applied_from_containers = []
+        for container in parent_containers:
+            for configlet in container["configlets"]:
+                configlets_applied_from_containers.append(configlet)
+
+        configlets_applied_from_containers.reverse()
+
+        return configlets_applied_from_containers
+
 
     def get_device_image_info(self, device_mac):
         ''' Return a dict of info about a device in CVP.

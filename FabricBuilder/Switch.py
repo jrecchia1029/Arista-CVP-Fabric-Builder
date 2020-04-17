@@ -123,11 +123,11 @@ class Switch():
 
     def get_facts(self):
         hostname_output = self.send_commands("show hostname | json")[0]["show hostname | json"]
-        print("hostname_output")
+        # print("hostname_output")
         version_output = self.send_commands("show version | json")[0]["show version | json"]
-        print("version_output")
+        # print("version_output")
         interface_output = self.send_commands("show interfaces | json")[0]["show interfaces | json"]
-        print("interface_output")
+        # print("interface_output")
         self.hostname = json.loads(hostname_output)["hostname"]
         self.fqdn = json.loads(hostname_output)["fqdn"]
         self.mac_address = json.loads(version_output)["systemMacAddress"]
@@ -377,7 +377,7 @@ class Switch():
                     underlay_source_interface="Loopback0",
                     router_id=None, peer_group_name=None, mlag_peer_group_name="MLAG-IPv4-UNDERLAY-PEER",
                     update_wait_install=True, pwd=None, max_routes=0, bfd=True, vrfs=None, role=None,
-                    mlag_peer_link=None, route_map=None, prefix_lists=None):
+                    mlag_peer_link=None, route_map=None, prefix_lists=None, nat_id=None):
         """
         Args
             asn ( int ) --> asn number
@@ -462,8 +462,10 @@ class Switch():
             vlan_section = ""
             vrf_section = ""
             interface_section = ""
+            port_channel_section = ""
             vxlan_interface_section = ""
             ibgp_section = ""
+            nat_config = ""
             peer_group_name = peer_group_name if peer_group_name is not None else "EVPN_OVERLAY_PEERS"
             bgp_underlay_config.append("router bgp {}".format(asn))
             bgp_underlay_config.append("   router-id {}".format(router_id))
@@ -510,8 +512,8 @@ class Switch():
                     route_target = vrf_info["Route Target"]
                     vlan = vrf_info["Vlan"]
                     vni = vrf_info["VNI"]
-
-                
+                    nat_address_range = vrf_info["NAT Address Range"].strip() if vrf_info["NAT Address Range"].strip() != "" else None
+                    nat_interface = vrf_info["NAT Interface"].strip() if vrf_info["NAT Interface"].strip() != "" else None
                     vrf_section += "vrf instance {}\n".format(vrf)
                     vrf_section += "!\n"
                     vrf_section += "ip routing vrf {}\n".format(vrf)
@@ -532,9 +534,9 @@ class Switch():
                         interface_section += "!\n"
 
 
-                        interface_section += "interface Port-Channel{}\n".format(mlag_peer_link)
-                        interface_section += "   switchport trunk group {}_IBGP_PEER\n".format(vrf)
-                        interface_section += "!\n"
+                        if "interface Port-Channel{}\n".format(mlag_peer_link) not in port_channel_section:
+                            port_channel_section += "interface Port-Channel{}\n".format(mlag_peer_link)
+                        port_channel_section += "   switchport trunk group {}_IBGP_PEER\n".format(vrf)
         
 
                     ibgp_section += "   vrf {}\n".format(vrf)
@@ -548,12 +550,27 @@ class Switch():
                     ibgp_section += "      redistribute connected\n"
                     ibgp_section += "!\n"
                     vxlan_interface_section += "   vxlan vrf {} vni {}\n".format(vrf, vni)
-                interface_section = switch_helpers.sortInterfaceConfig(interface_section + vxlan_interface_section)
-                
+
+                    if nat_id is not None and nat_address_range is not None and nat_interface is not None:
+                        nat_address = list(ipaddress.ip_network(nat_address_range).hosts())[nat_id-1]
+                        interface_section += "interface {}\n".format(nat_interface)
+                        interface_section += "   vrf {}\n".format(vrf)
+                        interface_section += "   ip address {}/32\n".format(nat_address)
+                        interface_section += "!\n"
+                        nat_config += "ip address virtual source-nat vrf {} address {}\n!\n".format(vrf, nat_address)
+
+                vxlan_interface_section += "\n!"
+                port_channel_section += "\n!"
+                interface_section = switch_helpers.sortInterfaceConfig(interface_section + vxlan_interface_section + port_channel_section)
+
+
+                bgp_underlay_config.insert(0, nat_config)    
                 bgp_underlay_config.insert(0, interface_section)
                 bgp_underlay_config.insert(0, vrf_section)
                 bgp_underlay_config.insert(0, vlan_section)
                 bgp_underlay_config.append(ibgp_section)
+
+
 
         return "\n".join(bgp_underlay_config)
 
@@ -915,7 +932,7 @@ class Switch():
         return config
         
     def add_vlans(self, vlan_info, vxlan=True, evpn=False, evpn_model=None, asn=None,
-                    virtual_address_mode="ip address virtual", dhcp_helper_interface=None):
+                    virtual_address_mode="ip address virtual"):
         """
             asn ( int ) --> bgp asn for switch
             svi_to_address ( {int:{str:str}}) --> dictionary of vlans to vlan info virtual ip addresses
@@ -958,20 +975,20 @@ class Switch():
                     interface_config += "   ip address virtual {} secondary\n".format(info["SVI Address Secondary"])
             elif virtual_address_mode == "ip virtual-router address":
                 interface_config += "   ip virtual-router address {}\n".format(info["SVI Address"].split("/")[0])
-            if info["DHCP Helper Addresses"][0] != "" and dhcp_helper_interface is not None:
+            if info["DHCP Helper Addresses"][0] != "" and info["DHCP Helper Interface"] is not None:
                 for address in info["DHCP Helper Addresses"]:
-                    interface_config += "   ip helper-address {} source-interface {}\n".format(address, dhcp_helper_interface)
+                    interface_config += "   ip helper-address {} source-interface {}\n".format(address, info["DHCP Helper Interface"])
 
             interface_config += "   arp timeout 1500\n"
             interface_config += "!\n"
                 
-            if evpn == True:
+            if evpn == True and info["Vrf"].strip() == "":
                 bgp_config += "  vlan {}\n".format(vlan)
                 bgp_config += "     rd {}\n".format(info["Route Distinguisher"])
                 bgp_config += "     route-target both {}:{}\n".format(info["VNI"], info["VNI"])
                 bgp_config += "     redistribute learned\n"
                 bgp_config += "  !\n"
-        
+
         return "\n".join([vlan_config, interface_config, vxlan_config, bgp_config])
 
           
@@ -1075,7 +1092,3 @@ class Switch():
         
         return ordered_interface_speeds
 
-if __name__ == "__main__":
-    switch = Switch(ip_address="10.20.30.5", username="cvpadmin", password="nynjlab")
-    switch.get_facts()
-    print(switch)

@@ -49,7 +49,7 @@ def cleanup_variable_values(global_options, logger):
     #Verify we have all keys:
     missing_key_flag = False
     global_variable_keys = {
-        "GENERAL": ["Underlay Source Interface", "Overlay Source Interface", "NAT Loopback"],
+        "GENERAL": ["Underlay Source Interface", "Overlay Source Interface"],
         "MANAGEMENT": ["Default Gateway", "VRF", "VRF Route-Distinguisher"],
         "MLAG": ["Domain ID", "SVI Address Range", "Port-Channel Number", "Vlan", "Trunk Group Name", "Virtual Mac Address",
         "Dual Primary Detection Delay", "Dual Primary Detection Action", "Peer Address Heartbeat"],
@@ -73,7 +73,6 @@ def cleanup_variable_values(global_options, logger):
         return None
     global_options["GENERAL"]["Underlay Source Interface"] = global_options["GENERAL"]["Underlay Source Interface"].replace(" ", "")
     global_options["GENERAL"]["Overlay Source Interface"] = global_options["GENERAL"]["Overlay Source Interface"].replace(" ", "")
-    global_options["GENERAL"]["NAT Loopback"] =  global_options["GENERAL"]["NAT Loopback"].replace(" ", "")
     return global_options
 
 def get_common_subnet(ip_addresses):

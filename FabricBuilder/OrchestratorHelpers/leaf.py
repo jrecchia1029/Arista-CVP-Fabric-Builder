@@ -2,7 +2,7 @@ from collections import OrderedDict
 
 class Leaf():
     def __init__(self, serial_number, container_name, hostname, mgmt_address, mgmt_interface,
-            mlag_peer, mlag_interfaces, asn, underlay_address, overlay_address, spine_connection_info, nat_address, image_bundle
+            mlag_peer, mlag_interfaces, asn, underlay_address, overlay_address, spine_connection_info, nat_id, image_bundle
             ):
         self.serial_number = serial_number
         self.container_name = container_name
@@ -17,7 +17,7 @@ class Leaf():
         self.underlay_address = underlay_address
         self.overlay_address = overlay_address
         self.spine_connection_info = spine_connection_info
-        self.nat_address = nat_address
+        self.nat_id = nat_id
         self.image_bundle = image_bundle
 
     def prep_spine_connection_info_for_configlet_builder(self):
