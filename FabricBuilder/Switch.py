@@ -979,7 +979,7 @@ class Switch():
                 for address in info["DHCP Helper Addresses"]:
                     interface_config += "   ip helper-address {} source-interface {}\n".format(address, info["DHCP Helper Interface"])
 
-            interface_config += "   arp timeout 1500\n"
+            interface_config += "   arp aging timeout 1500\n"
             interface_config += "!\n"
                 
             if evpn == True and info["Vrf"].strip() == "":
