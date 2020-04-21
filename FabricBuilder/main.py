@@ -883,7 +883,7 @@ def addVlansToLeaf(leaf):
             else:
                 vlan_info["Route Distinguisher"] = None
             vlan_info["DHCP Helper Addresses"] = info["DHCP Helper Addresses"]
-            vlan_info["DHCP Helper Interface"] = global_options["Vrfs"][info["Vrf"]]["NAT Interface"]
+            vlan_info["DHCP Helper Interface"] = global_options["Vrfs"][info["Vrf"]]["NAT Interface"] if info["Vrf"].strip() != "" else None
             vlans_info[vlan] = vlan_info
         
         #gathering values for options for mac vrf route distinguisher
