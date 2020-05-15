@@ -1,5 +1,7 @@
 # Fabric Builder
 
+This is a project that takes advantage of CVP's REST API to build out a Fabric defined in a spreadsheet to speed up custom Fabric deployments.
+
 ## Getting Started
 
 These instructions will get you a copy of the project up and running on your local machine.
