@@ -35,7 +35,10 @@ config = {
   'global' : {
     'server.socket_host' : '127.0.0.1',
     'server.socket_port' : 8080,
-    'server.thread_pool' : 8
+    'server.thread_pool' : 8,
+    'server.ssl_module' : 'builtin',
+    'server.ssl_certificate' : 'ssl/cert.pem',
+    'server.ssl_private_key' : 'ssl/privkey.pem'
   },
   '/static' : {
     'tools.staticdir.on'  : True,
