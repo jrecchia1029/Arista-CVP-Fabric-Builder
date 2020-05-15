@@ -36,9 +36,7 @@ config = {
     'server.socket_host' : '127.0.0.1',
     'server.socket_port' : 8080,
     'server.thread_pool' : 8,
-    'server.ssl_module' : 'builtin',
-    'server.ssl_certificate' : 'ssl/cert.pem',
-    'server.ssl_private_key' : 'ssl/privkey.pem'
+    'server.ssl_module' : 'builtin'
   },
   '/static' : {
     'tools.staticdir.on'  : True,
@@ -47,6 +45,10 @@ config = {
     'tools.expires.secs'  : 1
   }
 }
+
+if os.path.exists("./ssl/cert.pem") and os.path.exists("./ssl/privkey.pem"):
+    config['global']['server.ssl_certificate'] = 'ssl/cert.pem'
+    config['global']['server.ssl_private_key'] = 'ssl/privkey.pem'
 
 #For python 2 and 3 compatibility
 try:
