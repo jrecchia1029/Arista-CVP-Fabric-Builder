@@ -982,7 +982,7 @@ class Switch():
             interface_config += "   arp aging timeout 1500\n"
             interface_config += "!\n"
                 
-            if evpn == True and info["Vrf"].strip() == "":
+            if evpn == True:
                 bgp_config += "  vlan {}\n".format(vlan)
                 bgp_config += "     rd {}\n".format(info["Route Distinguisher"])
                 bgp_config += "     route-target both {}:{}\n".format(info["VNI"], info["VNI"])
