@@ -540,6 +540,7 @@ class Switch():
         
 
                     ibgp_section += "   vrf {}\n".format(vrf)
+                    ibgp_section += "      router-id {}\n".format(router_id)
                     ibgp_section += "      rd {}\n".format(route_distinguisher)
                     ibgp_section += "      route-target import evpn {}\n".format(route_target)
                     ibgp_section += "      route-target export evpn {}\n".format(route_target)
