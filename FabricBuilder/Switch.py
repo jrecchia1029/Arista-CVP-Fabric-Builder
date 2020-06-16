@@ -376,7 +376,7 @@ class Switch():
     def build_leaf_bgp(self, asn, protocol, underlay_source_address, remote_ases_and_neighbors,
                     underlay_source_interface="Loopback0",
                     router_id=None, peer_group_name=None, mlag_peer_group_name="MLAG-IPv4-UNDERLAY-PEER",
-                    update_wait_install=True, pwd=None, max_routes=0, bfd=True, vrfs=None, role=None,
+                    update_wait_install=True, underlay_pwd_hash=None, overlay_pwd_hash=None, max_routes=0, bfd=True, vrfs=None, role=None,
                     mlag_peer_link=None, route_map=None, prefix_lists=None, nat_id=None):
         """
         Args
@@ -434,8 +434,8 @@ class Switch():
             bgp_underlay_config.append("   neighbor {} peer group".format(peer_group_name))
             if bfd == True:
                 bgp_underlay_config.append("   neighbor {} bfd".format(peer_group_name))
-            if pwd is not None:
-                bgp_underlay_config.append("   neighbor {} password 7 {}".format(peer_group_name, pwd))
+            if underlay_pwd_hash is not None:
+                bgp_underlay_config.append("   neighbor {} password 7 {}".format(peer_group_name, underlay_pwd_hash))
             bgp_underlay_config.append("   neighbor {} send-community".format(peer_group_name))
             bgp_underlay_config.append("   neighbor {} maximum-routes {}".format(peer_group_name, max_routes))
             for remote_as, bgp_neighbors in remote_ases_and_neighbors.items():
@@ -476,8 +476,8 @@ class Switch():
             bgp_underlay_config.append("   neighbor {} ebgp-multihop 3".format(peer_group_name))
             if bfd == True:
                 bgp_underlay_config.append("   neighbor {} bfd".format(peer_group_name))
-            if pwd is not None:
-                bgp_underlay_config.append("   neighbor {} password 7 {}".format(peer_group_name, pwd))
+            if overlay_pwd_hash is not None:
+                bgp_underlay_config.append("   neighbor {} password 7 {}".format(peer_group_name, overlay_pwd_hash))
             bgp_underlay_config.append("   neighbor {} send-community".format(peer_group_name))
             bgp_underlay_config.append("   neighbor {} maximum-routes {}".format(peer_group_name, max_routes))
             for remote_as, bgp_neighbors in remote_ases_and_neighbors.items():
@@ -580,7 +580,7 @@ class Switch():
                             prefix_lists=None, route_map=None,
                             underlay_source_interface="Loopback0",
                             router_id=None, peer_group_name=None, peer_filter_name="LEAF-AS-RANGE",
-                            update_wait_install=True, pwd=None, max_routes=0, bfd=True):
+                            update_wait_install=True, underlay_pwd_hash=None, overlay_pwd_hash=None, max_routes=0, bfd=True):
         '''
         role = "leaf" or "spine"
         network_plane = "ipv4" or "evpn"
@@ -632,8 +632,8 @@ class Switch():
             bgp_underlay_config.append("   neighbor {} send-community".format(peer_group_name))
             if bfd == True:
                 bgp_underlay_config.append("   neighbor {} bfd".format(peer_group_name))
-            if pwd is not None:
-                bgp_underlay_config.append("   neighbor {} password 7 {}".format(peer_group_name, pwd))
+            if underlay_pwd_hash is not None:
+                bgp_underlay_config.append("   neighbor {} password 7 {}".format(peer_group_name, underlay_pwd_hash))
             bgp_underlay_config.append("   neighbor {} maximum-routes {}".format(peer_group_name, max_routes))
             if route_map is not None and prefix_lists is not None:
                 bgp_underlay_config.append("   redistribute connected route-map {}".format(next(iter(route_map))))
@@ -666,8 +666,8 @@ class Switch():
             bgp_underlay_config.append("   neighbor {} ebgp-multihop 3".format(peer_group_name))
             if bfd == True:
                 bgp_underlay_config.append("   neighbor {} bfd".format(peer_group_name))
-            if pwd is not None:
-                bgp_underlay_config.append("   neighbor {} password 7 {}".format(peer_group_name, pwd))
+            if overlay_pwd_hash is not None:
+                bgp_underlay_config.append("   neighbor {} password 7 {}".format(peer_group_name, overlay_pwd_hash))
             bgp_underlay_config.append("   neighbor {} send-community".format(peer_group_name))
             bgp_underlay_config.append("   neighbor {} maximum-routes {}".format(peer_group_name, max_routes))
             bgp_underlay_config.append("   !")
@@ -678,7 +678,7 @@ class Switch():
         
 
     def build_ibgp_between_mlag(self, role, asn, router_id, mlag_peer_link, ibgp_address_range="172.21.16.254/31", svi=4094,
-                                peer_group_name="MLAG-IPv4-UNDERLAY-PEER", pwd=None, max_routes=12000):
+                                peer_group_name="MLAG-IPv4-UNDERLAY-PEER", ibgp_pwd_hash=None, max_routes=12000):
         ibgp_address_range = ibgp_address_range
         ibgp_section = ""
 
@@ -713,8 +713,8 @@ class Switch():
         ibgp_section += "   neighbor {} peer group\n".format(peer_group_name)
         ibgp_section += "   neighbor {} remote-as {}\n".format(peer_group_name, asn)
         ibgp_section += "   neighbor {} next-hop-self\n".format(peer_group_name)
-        if pwd is not None:
-            ibgp_section += "   neighbor {} password 7 {}\n".format(peer_group_name, pwd)
+        if ibgp_pwd_hash is not None:
+            ibgp_section += "   neighbor {} password 7 {}\n".format(peer_group_name, ibgp_pwd_hash)
         ibgp_section += "   neighbor {} send-community\n".format(peer_group_name)
         ibgp_section += "   neighbor {} maximum-routes {}\n".format(peer_group_name, max_routes)
         ibgp_section += "   neighbor {} peer group {}\n".format(ibgp_neighbor_address, peer_group_name)

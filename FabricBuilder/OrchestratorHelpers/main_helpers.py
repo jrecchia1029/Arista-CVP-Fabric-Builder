@@ -53,9 +53,9 @@ def cleanup_variable_values(global_options, logger):
         "MANAGEMENT": ["Default Gateway", "VRF", "VRF Route-Distinguisher"],
         "MLAG": ["Domain ID", "SVI Address Range", "Port-Channel Number", "Vlan", "Trunk Group Name", "Virtual Mac Address",
         "Dual Primary Detection Delay", "Dual Primary Detection Action", "Peer Address Heartbeat"],
-        "IBGP Between MLAG Peers":["IBGP", "Peering SVI", "SVI Address Range", "Peer Group Name", "Maximum Routes", "Password"],
+        "IBGP Between MLAG Peers":["IBGP", "Peering SVI", "SVI Address Range", "Peer Group Name", "Maximum Routes", "Password Hash"],
         "BGP": ["Underlay Peer Group Name", "Overlay Peer Group Name", "Route-Map Name", "Underlay Prefix List Name", "Loopback Prefix List Name",
-        "BFD in Underlay", "BFD in Overlay", "Password", "Spine Peer Filter Name"],
+        "BFD in Underlay", "BFD in Overlay", "Underlay Password Hash", "Overlay Password Hash", "Spine Peer Filter Name"],
         "VXLAN":["Vxlan Data Plane", "Vxlan Control Plane", "UDP Port"],
         "CVX":["Primary CVX IP Address", "Secondary CVX IP Address", "Tertiary CVX IP Address"],
         "EVPN":["Model"]

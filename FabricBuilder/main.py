@@ -185,7 +185,7 @@ def deployL3LSLeaf(leaf):
         # is still in undefined container
         if device_dict["containerName"] != "Undefined":
            logger.warning("{} is already out of the Undefined container".format(device_dict["hostname"]))
-           return
+        #    return
 
         #Set Configlet Prefix
         configlet_prefix = "{}_".format(leaf.hostname)
@@ -286,7 +286,7 @@ def deployL3LSLeaf(leaf):
                     ibgp_peering_svi = int(global_options["IBGP Between MLAG Peers"]["Peering SVI"])
                     ibgp_address_range = global_options["IBGP Between MLAG Peers"]["SVI Address Range"]
                     ibgp_peer_group_name = global_options["IBGP Between MLAG Peers"]["Peer Group Name"]
-                    ibgp_pwd = global_options["IBGP Between MLAG Peers"]["Password"] if global_options["IBGP Between MLAG Peers"]["Password"] != "" else None
+                    ibgp_pwd_hash = global_options["IBGP Between MLAG Peers"]["Password Hash"] if global_options["IBGP Between MLAG Peers"]["Password Hash"].strip() != "" else None
                     router_id = leaf.underlay_address.split("/")[0]
                     mlag_port_channel_number = int(global_options["MLAG"]["Port-Channel Number"])
                     logger.debug("Successfully retrieved IBGP variables for {}".format(leaf.hostname))
@@ -296,7 +296,7 @@ def deployL3LSLeaf(leaf):
                                                             ibgp_address_range=ibgp_address_range,
                                                             svi=ibgp_peering_svi,
                                                             peer_group_name=ibgp_peer_group_name,
-                                                            pwd=ibgp_pwd, max_routes=12000)
+                                                            ibgp_pwd_hash=ibgp_pwd_hash, max_routes=12000)
                     logger.debug("Successfully generated IBGP configuration for {}".format(leaf.hostname))
                     configlet_name = configlet_prefix + "IBGP_Between_MLAGs"
                     logger.debug("Updating {} configlet in CVP".format(configlet_name))
@@ -341,7 +341,8 @@ def deployL3LSLeaf(leaf):
             logger.debug("Retrieving underlay variables for {}".format(leaf.hostname))
             underlay_source_interface = global_options["GENERAL"]["Underlay Source Interface"]
             peer_group_name = global_options["BGP"]["Underlay Peer Group Name"]
-            pwd = global_options["BGP"]["Password"] if global_options["BGP"]["Password"] != "" else None
+            underlay_pwd_hash = global_options["BGP"]["Underlay Password Hash"] if global_options["BGP"]["Underlay Password Hash"].strip() != "" else None
+            overlay_pwd_hash = global_options["BGP"]["Overlay Password Hash"] if global_options["BGP"]["Overlay Password Hash"].strip() != "" else None
             bfd = True if bool(int(global_options["BGP"]["BFD in Underlay"])) == True else False
             #Create underlay prefix list subnet
             local_transit_addresses = []
@@ -379,7 +380,7 @@ def deployL3LSLeaf(leaf):
             bgp_underlay_configlet = switch.build_leaf_bgp(leaf.asn, "ipv4", leaf.underlay_address,
                                                                 bgp_underlay_neighbor_info, underlay_source_interface=global_options["GENERAL"]["Underlay Source Interface"],
                                                                 peer_group_name=peer_group_name,
-                                                                pwd=pwd, bfd=bfd, max_routes=12000, route_map=route_map,
+                                                                underlay_pwd_hash=underlay_pwd_hash, overlay_pwd_hash=overlay_pwd_hash, bfd=bfd, max_routes=12000, route_map=route_map,
                                                                 prefix_lists=prefix_lists)
             logger.debug("Successfully generated Underlay configuration for {}".format(leaf.hostname))
             configlet_name = configlet_prefix + "BGP_Underlay"
@@ -452,7 +453,8 @@ def deployL3LSLeaf(leaf):
                     underlay_source_interface = global_options["GENERAL"]["Underlay Source Interface"]
                     peer_group_name = global_options["BGP"]["Overlay Peer Group Name"]
                     mlag_peer_group_name = global_options["IBGP Between MLAG Peers"]["Peer Group Name"]
-                    pwd = global_options["BGP"]["Password"] if global_options["BGP"]["Password"] != "" else None
+                    underlay_pwd_hash = global_options["BGP"]["Underlay Password Hash"] if global_options["BGP"]["Underlay Password Hash"] != "" else None
+                    overlay_pwd_hash = global_options["BGP"]["Overlay Password Hash"] if global_options["BGP"]["Overlay Password Hash"] != "" else None
                     bfd = True if bool(int(global_options["BGP"]["BFD in Overlay"])) == True else False
                     vrfs_info = None
                     mlag_port_channel = None
@@ -496,7 +498,7 @@ def deployL3LSLeaf(leaf):
                     vxlan_control_plane_configlet = switch.build_leaf_bgp(leaf.asn, "evpn", leaf.underlay_address,
                                                     bgp_overlay_neighbor_info, 
                                                     underlay_source_interface=underlay_source_interface, peer_group_name=peer_group_name,
-                                                    mlag_peer_group_name=mlag_peer_group_name, pwd=pwd,
+                                                    mlag_peer_group_name=mlag_peer_group_name, underlay_pwd_hash=underlay_pwd_hash, overlay_pwd_hash=overlay_pwd_hash,
                                                     bfd=bfd, vrfs=vrfs_info, role=role, mlag_peer_link=mlag_port_channel, nat_id=leaf.nat_id)
                     logger.debug("Successfully generated EVPN control plane configuration for {}".format(leaf.hostname))
                 elif control_plane == "her":
@@ -698,7 +700,9 @@ def deployL3LSSpine(spine):
                 peer_filter_name = global_options["BGP"]["Spine Peer Filter Name"]
                 remote_ases_and_neighbors = spine.prep_bgp_connection_info_for_configlet_builder()
                 bfd = True if bool(int(global_options["BGP"]["BFD in Underlay"])) == True else False
-                pwd = global_options["BGP"]["Password"] if global_options["BGP"]["Password"] != "" else None
+
+                underlay_pwd_hash = global_options["BGP"]["Password"] if global_options["BGP"]["Underlay Password Hash"].strip() != "" else None
+                overlay_pwd_hash = global_options["BGP"]["Password"] if global_options["BGP"]["Overlay Password Hash"].strip() != "" else None
 
                 #Build route map info
                 underlay_pl_name = global_options["BGP"]["Underlay Prefix List Name"] if global_options["BGP"]["Underlay Prefix List Name"] != "" else None
@@ -727,7 +731,8 @@ def deployL3LSSpine(spine):
                                                                         underlay_source_interface=underlay_source_interface,
                                                                         router_id=spine.underlay_address.split("/")[0],
                                                                         peer_group_name=peer_group_name,
-                                                                        peer_filter_name=peer_filter_name, pwd=pwd, max_routes=12000,
+                                                                        peer_filter_name=peer_filter_name, underlay_pwd_hash=underlay_pwd_hash,
+                                                                        overlay_pwd_hash=overlay_pwd_hash, max_routes=12000,
                                                                         bfd=bfd)
                 logger.debug("Successfully generated Underlay configuration for {}".format(spine.hostname))
                 configlet_name = configlet_prefix + "BGP_Underlay"
@@ -752,7 +757,8 @@ def deployL3LSSpine(spine):
                     underlay_source_interface = global_options["GENERAL"]["Underlay Source Interface"]
                     peer_filter_name = global_options["BGP"]["Spine Peer Filter Name"]
                     bfd = True if bool(int(global_options["BGP"]["BFD in Overlay"])) == True else False
-                    pwd = global_options["BGP"]["Password"] if global_options["BGP"]["Password"] != "" else None
+                    underlay_pwd_hash = global_options["BGP"]["Underlay Password Hash"] if global_options["BGP"]["Underlay Password Hash"].strip() != "" else None
+                    overlay_pwd_hash = global_options["BGP"]["Overlay Password Hash"] if global_options["BGP"]["Overlay Password Hash"].strip() != "" else None
                     peer_group_name = global_options["BGP"]["Overlay Peer Group Name"]
                     logger.debug("Successfully retrieved EVPN control plane variables for {}".format(spine.hostname))
                     logger.debug("Generating EVPN control plane configuration for {}".format(spine.hostname))
@@ -762,7 +768,8 @@ def deployL3LSSpine(spine):
                                                                         underlay_source_interface=underlay_source_interface,
                                                                         router_id=spine.underlay_address.split("/")[0],
                                                                         peer_group_name=peer_group_name,
-                                                                        peer_filter_name=peer_filter_name, pwd=pwd, max_routes=0,
+                                                                        peer_filter_name=peer_filter_name, underlay_pwd_hash=underlay_pwd_hash,
+                                                                        overlay_pwd_hash=overlay_pwd_hash, max_routes=0,
                                                                         bfd=bfd)
                     logger.debug("Successfully generated EVPN control plane configuration for {}".format(spine.hostname))
                     configlet_name = configlet_prefix + "BGP_Overlay"
