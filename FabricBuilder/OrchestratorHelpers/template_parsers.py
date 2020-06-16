@@ -192,7 +192,8 @@ def parseVlans(general_info_file, logger):
                 "Stretched": vlan["Stretched"],
                 "VNI": int(vlan["VNI"]),
                 "Route Distinguisher": vlan["Route Distinguisher"],
-                "DHCP Helper Addresses": [address.strip() for address in vlan["DHCP Helper Addresses"].split(",")]
+                "DHCP Helper Addresses": [address.strip() for address in vlan["DHCP Helper Addresses"].split(",")],
+                "Enabled": vlan["Enabled"].strip()
                 }
         except KeyError as e:
             logger.error("Unable to find column: {} in 'Vlan' sheet.".format(str(e)))

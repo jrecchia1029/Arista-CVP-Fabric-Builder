@@ -981,6 +981,10 @@ class Switch():
                     interface_config += "   ip helper-address {} source-interface {}\n".format(address, info["DHCP Helper Interface"])
 
             interface_config += "   arp aging timeout 1500\n"
+            if info["Enabled"] == True:
+                interface_config += "   no shutdown\n"
+            else:
+                interface_config += "   shutdown\n"
             interface_config += "!\n"
                 
             if evpn == True:

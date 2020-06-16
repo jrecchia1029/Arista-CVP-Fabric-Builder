@@ -876,7 +876,7 @@ def addVlansToLeaf(leaf):
             vlan_info["SVI Address Secondary"] = info["SVI Address Secondary"]
             vlan_info["Vrf"] = info["Vrf"]
             vlan_info["Stretched"] = bool(int(info["Stretched"]))
-            logger.info("Vlan {} - Stretch: {}".format(vlan_info["Name"], vlan_info["Stretched"]))
+            # logger.info("Vlan {} - Stretch: {}".format(vlan_info["Name"], vlan_info["Stretched"]))
             vlan_info["VNI"] = int(info["VNI"])
             if info["Route Distinguisher"] is not None and info["Route Distinguisher"] != "":
                 rd_pre_colon = info["Route Distinguisher"].split(":")[0].strip()
@@ -889,6 +889,12 @@ def addVlansToLeaf(leaf):
                 vlan_info["Route Distinguisher"] = None
             vlan_info["DHCP Helper Addresses"] = info["DHCP Helper Addresses"]
             vlan_info["DHCP Helper Interface"] = global_options["Vrfs"][info["Vrf"]]["NAT Interface"] if info["Vrf"].strip() != "" else None
+            if info["Enabled"] != "":
+                # logger.info("{} - Setting Enabled variable based on input value".format(vlan))
+                vlan_info["Enabled"] = bool(int(info["Enabled"]))
+            else:
+                # logger.info("{} - Setting Enabled variable to True by default".format(vlan))
+                vlan_info["Enabled"] = True
             vlans_info[vlan] = vlan_info
         
         #gathering values for options for mac vrf route distinguisher
