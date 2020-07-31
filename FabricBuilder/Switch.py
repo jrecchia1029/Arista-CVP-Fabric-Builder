@@ -933,7 +933,7 @@ class Switch():
         return config
         
     def add_vlans(self, vlan_info, vxlan=True, evpn=False, evpn_model=None, asn=None,
-                    virtual_address_mode="ip address virtual"):
+                    virtual_address_mode="ip address virtual", mtu=9214):
         """
             asn ( int ) --> bgp asn for switch
             svi_to_address ( {int:{str:str}}) --> dictionary of vlans to vlan info virtual ip addresses
@@ -967,7 +967,7 @@ class Switch():
             if info["SVI Address"] is None or info["SVI Address"] == "":
                 continue
             interface_config += "interface Vlan{}\n".format(vlan)
-            interface_config += "   mtu {}\n".format(9000)
+            interface_config += "   mtu {}\n".format(mtu)
             if evpn==True and evpn_model == "symmetric":
                 interface_config += "   vrf {}\n".format(info["Vrf"])
             if virtual_address_mode == "ip address virtual":
