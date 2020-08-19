@@ -964,28 +964,27 @@ class Switch():
             if vxlan == True and info["Stretched"] == True:
                 vxlan_config += "   vxlan vlan {} vni {}\n".format(vlan, info["VNI"])
             
-            if info["SVI Address"] is None or info["SVI Address"] == "":
-                continue
-            interface_config += "interface Vlan{}\n".format(vlan)
-            interface_config += "   mtu {}\n".format(mtu)
-            if evpn==True and evpn_model == "symmetric":
-                interface_config += "   vrf {}\n".format(info["Vrf"])
-            if virtual_address_mode == "ip address virtual":
-                interface_config += "   ip address virtual {}\n".format(info["SVI Address"])
-                if info["SVI Address Secondary"] != "":
-                    interface_config += "   ip address virtual {} secondary\n".format(info["SVI Address Secondary"])
-            elif virtual_address_mode == "ip virtual-router address":
-                interface_config += "   ip virtual-router address {}\n".format(info["SVI Address"].split("/")[0])
-            if info["DHCP Helper Addresses"][0] != "" and info["DHCP Helper Interface"] is not None:
-                for address in info["DHCP Helper Addresses"]:
-                    interface_config += "   ip helper-address {} source-interface {}\n".format(address, info["DHCP Helper Interface"])
+            if info["SVI Address"] is not None and info["SVI Address"].strip() != "":
+                interface_config += "interface Vlan{}\n".format(vlan)
+                interface_config += "   mtu {}\n".format(mtu)
+                if evpn==True and evpn_model == "symmetric":
+                    interface_config += "   vrf {}\n".format(info["Vrf"])
+                if virtual_address_mode == "ip address virtual":
+                    interface_config += "   ip address virtual {}\n".format(info["SVI Address"])
+                    if info["SVI Address Secondary"] != "":
+                        interface_config += "   ip address virtual {} secondary\n".format(info["SVI Address Secondary"])
+                elif virtual_address_mode == "ip virtual-router address":
+                    interface_config += "   ip virtual-router address {}\n".format(info["SVI Address"].split("/")[0])
+                if info["DHCP Helper Addresses"][0] != "" and info["DHCP Helper Interface"] is not None:
+                    for address in info["DHCP Helper Addresses"]:
+                        interface_config += "   ip helper-address {} source-interface {}\n".format(address, info["DHCP Helper Interface"])
 
-            interface_config += "   arp aging timeout 1500\n"
-            if info["Enabled"] == True:
-                interface_config += "   no shutdown\n"
-            else:
-                interface_config += "   shutdown\n"
-            interface_config += "!\n"
+                interface_config += "   arp aging timeout 1500\n"
+                if info["Enabled"] == True:
+                    interface_config += "   no shutdown\n"
+                else:
+                    interface_config += "   shutdown\n"
+                interface_config += "!\n"
                 
             if evpn == True:
                 bgp_config += "  vlan {}\n".format(vlan)
