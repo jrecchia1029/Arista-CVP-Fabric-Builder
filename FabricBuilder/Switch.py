@@ -995,6 +995,21 @@ class Switch():
 
         return "\n".join([vlan_config, interface_config, vxlan_config, bgp_config])
 
+    def build_nat_config(self, vrfs, nat_id):
+        interface_config = ""
+        nat_details = ""
+        for vrf, details in vrfs.items():
+            if details["NAT Address Range"].strip() == "" or details["NAT Interface"].strip() == "":
+                continue
+            nat_ip_address = list(ipaddress.IPv4Network(details["NAT Address Range"]).hosts())[int(nat_id)]
+            interface_config += "interface {}\n".format(details["NAT Interface"])
+            interface_config += "   vrf {}\n".format(vrf)
+            interface_config += "   ip address {}/32\n".format(nat_ip_address)
+            interface_config += "!\n"
+            nat_details += "ip address virtual source-nat vrf {} address {}\n".format(vrf, nat_ip_address)
+        nat_config = interface_config + nat_details
+        return nat_config
+
           
     def add_vrfs(self, asn, router_id, mlag_enabled=False, role=None, vrfs_info=None):
         '''
