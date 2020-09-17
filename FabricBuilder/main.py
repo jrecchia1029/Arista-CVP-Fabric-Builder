@@ -539,6 +539,8 @@ def deployL3LSLeaf(leaf):
                         configlet_info = cvp.api.get_configlet_by_name(configlet_name)
                         configlets_to_apply.append(configlet_info)
                         logger.info("Completed building Overlay Control Plane Configlet for {}".format(leaf.hostname))
+                else:
+                    logger.warning("No NAT ID assigned for {}".format(leaf.hostname))
             except Exception as e:
                 logger.error("Error configuring NAT Configlet for {}".format(leaf.hostname))
                 logger.error("Error: {}".format(str(e)))
@@ -985,8 +987,60 @@ def addVlansToLeaf(leaf):
     return
 
 #########################################################################################################
+def removeVlansFromLeaf(leaf):
+    try:
+        switch = Switch(leaf.mgmt_address.split("/")[0], username, password)
+        logger.info("Getting switch details")
+        switch.get_facts()
+        logger.info("Retrieved switch details")
+        logger.info("Parsing vlan details")
+        underlay_interface = global_options["GENERAL"]["Underlay Source Interface"]
+        underlay_address = switch.interfaces[underlay_interface]["interfaceAddress"][0]["primaryIp"]["address"]
+        vlans_info = global_options["Vlans"].keys()
 
+        logger.info("Parsed vlan details")
 
+        configlet_prefix = "{}_".format(switch.hostname)
+        configlet_name = configlet_prefix + "Vlans"
+        logger.info("Generating vlan configuration")
+        logger.info("Successfully generated vlan configuration")
+        #Check to see if their is an existing vlan
+        logger.info("Checking to see if vlan configlet already exists")
+        try:
+            configlet_exists = cvp.api.get_configlet_by_name(configlet_name)
+        except:
+            logger.info( "Configlet {} doesn't exist".format(configlet_name))
+            configlet_exists = None
+
+        if configlet_exists:
+            logger.info("An existing vlan configlet already exists for {}".format(leaf.hostname))
+            logger.info("Merging existing configlet {} with newly generated vlan configuration".format(configlet_exists["name"]))
+            vlan_config = removeVlansFromVlanConfig(vlans_info, configlet_exists["config"])
+            logger.info("Successfully removed vlans from vlan configs")
+
+        print(vlan_config)
+        # printConfiglet(configlet_name, vlan_config)
+        logger.info("Updating {} in CVP".format(configlet_name))
+        task_ids = updateInCVP(cvp, configlet_name, vlan_config, leaf.serial_number)
+        logger.info("Successfully updated {} in CVP".format(configlet_name))
+        # print "Execute tasks setting is set to", execute_tasks
+        # print len(task_ids), "task Ids:", task_ids
+        if execute_tasks == True:
+            for task_id in task_ids:
+                try:
+                    cvp.api.execute_task(task_id)
+                    print( "Executed {}".format(task_id))
+                except Exception as e:
+                    print("Error executing tasks related to {}".format(leaf.hostname))
+                    print("Error:", e)
+
+    except KeyboardInterrupt:
+        logger.error( "Received KeyboardInterrupt")
+        sys.exit()
+    except Exception as e:
+        logger.error("Error creating Vlan Configlet for {}".format(leaf.hostname))
+        logger.error("Error:", str(e))
+    return
 #########################################################################################################
 def cleanUpDeviceConfiglets(device):
     try:
@@ -1187,6 +1241,12 @@ def run_script(operation=None,autoexec=None,cvpuser=None,cvppass=None):
         logger.info("Finished adding Vlans to Day 2 Target Devices")
     
     elif int(option) == 3:
+        logger.info("Removing Vlans from Day 2 Target Devices")
+        for device in day_2_target_devices:
+            removeVlansFromLeaf(device)
+        logger.info("Finished removing Vlans from Day 2 Target Devices")    
+
+    elif int(option) == 4:
         device_list = []
         for leaf in leafs:
             device_list.append(leaf)
@@ -1199,8 +1259,9 @@ def run_script(operation=None,autoexec=None,cvpuser=None,cvppass=None):
             cleanUpDeviceConfiglets(device)
 
         print("Clean Up Configlets Finished")
+        
 
-    elif int(option) == 4:
+    elif int(option) == 5:
         devices = []
         for leaf in leafs:
             devices.append(leaf)
@@ -1221,7 +1282,7 @@ def run_script(operation=None,autoexec=None,cvpuser=None,cvppass=None):
             except:
                 continue
 
-    elif int(option) == 5:
+    elif int(option) == 6:
         devices = []
         for leaf in leafs:
             delete_configlets(cvp, leaf.serial_number)
