@@ -197,21 +197,22 @@ def removeVlansFromVlanConfig(vlans_to_remove, vlan_config):
         if remove_vlan_to_vni_mapping == False:
             vxlan_config += line + "\n"
 
-    bgp_config_lines = []
-    tmp_bgp_config_lines = bgp_config.strip().split("\n")
-    bgp_config_lines.append(tmp_bgp_config_lines.pop(0))
-    bgp_config_lines.append(tmp_bgp_config_lines.pop(-1))
-    tmp_bgp_config = "\n".join(tmp_bgp_config_lines)
-    
-    mac_vrf_configs = re.split(r'!\n', tmp_bgp_config)
-    for mac_vrf_config in mac_vrf_configs:
-        remove_mac_vrf = False
-        for vlan_to_remove in vlans_to_remove:
-            if re.search("(?i)vlan\s*{}".format(vlan_to_remove), mac_vrf_config):
-                remove_mac_vrf = True
-                break
-        if remove_mac_vrf == False:
-            bgp_config_lines.insert(-1, mac_vrf_config + "!")
-    bgp_config = "\n".join(bgp_config_lines)
+    if bgp_config != "":
+        bgp_config_lines = []
+        tmp_bgp_config_lines = bgp_config.strip().split("\n")
+        bgp_config_lines.append(tmp_bgp_config_lines.pop(0))
+        bgp_config_lines.append(tmp_bgp_config_lines.pop(-1))
+        tmp_bgp_config = "\n".join(tmp_bgp_config_lines)
+        
+        mac_vrf_configs = re.split(r'!\n', tmp_bgp_config)
+        for mac_vrf_config in mac_vrf_configs:
+            remove_mac_vrf = False
+            for vlan_to_remove in vlans_to_remove:
+                if re.search("(?i)vlan\s*{}".format(vlan_to_remove), mac_vrf_config):
+                    remove_mac_vrf = True
+                    break
+            if remove_mac_vrf == False:
+                bgp_config_lines.insert(-1, mac_vrf_config + "!")
+        bgp_config = "\n".join(bgp_config_lines)
 
-    return vlan_definition_config.strip() + "\n" + svi_config.strip() + "\n" + vxlan_config.strip() + "\n" + bgp_config.strip()
+    return (vlan_definition_config.strip() + "\n" + svi_config.strip() + "\n" + vxlan_config.strip() + "\n" + bgp_config.strip()).strip()
