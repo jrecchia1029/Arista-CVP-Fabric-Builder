@@ -526,18 +526,19 @@ def deployL3LSLeaf(leaf):
                 logger.error("Error: {}".format(str(e)))
 
             try:
-                #Build NAT Configlet
-                vrfs = global_options["Vrfs"]
-                nat_config = switch.build_nat_config(vrfs, leaf.nat_id)
-                if nat_config != "":
-                    configlet_name = configlet_prefix + "NAT"
-                    logger.debug("Updating {} configlet in CVP".format(configlet_name))
-                    updateInCVP(cvp, configlet_name, nat_config, leaf.serial_number, apply=False)
-                    logger.debug("Successfully updated {} configlet in CVP".format(configlet_name))
-                    # printConfiglet(configlet_name, nat_config)
-                    configlet_info = cvp.api.get_configlet_by_name(configlet_name)
-                    configlets_to_apply.append(configlet_info)
-                    logger.info("Completed building Overlay Control Plane Configlet for {}".format(leaf.hostname))
+                if leaf.nat_id is not None:
+                    #Build NAT Configlet
+                    vrfs = global_options["Vrfs"]
+                    nat_config = switch.build_nat_config(vrfs, leaf.nat_id)
+                    if nat_config != "":
+                        configlet_name = configlet_prefix + "NAT"
+                        logger.debug("Updating {} configlet in CVP".format(configlet_name))
+                        updateInCVP(cvp, configlet_name, nat_config, leaf.serial_number, apply=False)
+                        logger.debug("Successfully updated {} configlet in CVP".format(configlet_name))
+                        # printConfiglet(configlet_name, nat_config)
+                        configlet_info = cvp.api.get_configlet_by_name(configlet_name)
+                        configlets_to_apply.append(configlet_info)
+                        logger.info("Completed building Overlay Control Plane Configlet for {}".format(leaf.hostname))
             except Exception as e:
                 logger.error("Error configuring NAT Configlet for {}".format(leaf.hostname))
                 logger.error("Error: {}".format(str(e)))
