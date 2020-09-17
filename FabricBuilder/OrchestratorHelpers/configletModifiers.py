@@ -144,3 +144,74 @@ def order_dict(dictionary):
         od[k] = dictionary[k]
     return od
 
+def removeVlansFromVlanConfig(vlans_to_remove, vlan_config):
+    '''
+    Removes the vlans listed in vlans_to_remove ([list]) along with their configuration from the vlan_config
+    '''
+    new_config = ""
+    #Break vlan_config into separate parts
+    vlan_definition_config_list = []
+    svi_config_list = []
+    vxlan_config = ""
+    bgp_config = ""
+    for section in re.split(r'\n!\n', vlan_config):
+        # print(section)
+        # print("\n")
+        if re.match(r'^(?i)vlan\s*\d+', section):
+            vlan_definition_config_list.append(section + "\n!\n")
+        elif re.match(r'^(?i)interface\s*Vlan\s*\d+', section):
+            svi_config_list.append(section + "\n!\n")
+        elif re.match(r'^(?i)interface\s*Vxlan\s*\d+', section):
+            vxlan_config += section + "\n!\n"
+        elif re.match(r'^(?i)router\s+bgp\s+\d+', section):
+            bgp_config += section + "\n!\n"
+
+    vlan_definition_config = ""
+    for vlan_definition in vlan_definition_config_list:
+        remove_vlan = False
+        for vlan_to_remove in vlans_to_remove:
+            if re.search("(?i)vlan\s*{}".format(vlan_to_remove), vlan_definition):
+                remove_vlan = True
+                break
+        if remove_vlan == False:
+            vlan_definition_config += vlan_definition
+
+    svi_config = ""
+    for svi in svi_config_list:
+        remove_svi = False
+        for vlan_to_remove in vlans_to_remove:
+             if re.search("(?i)interface\s+vlan\s*{}".format(vlan_to_remove), svi):
+                remove_svi = True
+                break
+        if remove_svi == False:
+            svi_config += svi
+
+    vxlan_config_lines = vxlan_config.split("\n")
+    vxlan_config = ""
+    for i, line in enumerate(vxlan_config_lines):
+        remove_vlan_to_vni_mapping = False
+        for vlan_to_remove in vlans_to_remove:
+             if re.search("(?i)vxlan\s+vlan\s+{}".format(vlan_to_remove), line):
+                remove_vlan_to_vni_mapping = True
+                break
+        if remove_vlan_to_vni_mapping == False:
+            vxlan_config += line + "\n"
+
+    bgp_config_lines = []
+    tmp_bgp_config_lines = bgp_config.strip().split("\n")
+    bgp_config_lines.append(tmp_bgp_config_lines.pop(0))
+    bgp_config_lines.append(tmp_bgp_config_lines.pop(-1))
+    tmp_bgp_config = "\n".join(tmp_bgp_config_lines)
+    
+    mac_vrf_configs = re.split(r'!\n', tmp_bgp_config)
+    for mac_vrf_config in mac_vrf_configs:
+        remove_mac_vrf = False
+        for vlan_to_remove in vlans_to_remove:
+            if re.search("(?i)vlan\s*{}".format(vlan_to_remove), mac_vrf_config):
+                remove_mac_vrf = True
+                break
+        if remove_mac_vrf == False:
+            bgp_config_lines.insert(-1, mac_vrf_config + "!")
+    bgp_config = "\n".join(bgp_config_lines)
+
+    return vlan_definition_config.strip() + "\n" + svi_config.strip() + "\n" + vxlan_config.strip() + "\n" + bgp_config.strip()
