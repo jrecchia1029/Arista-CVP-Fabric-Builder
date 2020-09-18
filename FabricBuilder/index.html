@@ -49,7 +49,7 @@
             <br/>
             <button class="btn btn-success vlans button" onclick="run(2)" data-toggle="modal" data-target="#deployModal">Add VLANS</button>
             <br/>
-            <button class="btn btn-danger vlans button" onclick="run(3)" data-toggle="modal" data-target="#deployModal">Remove VLANS</button>
+            <button class="btn btn-danger vlans button" data-toggle="modal" data-target="#removeVLANConfirmationModal">Remove VLANS</button>
             <br/>
             <button class="btn btn-primary pre button" onclick="run(99)" data-toggle="modal" data-target="#deployModal">Pre-check</button>
             <br/>
@@ -75,6 +75,25 @@
             </div>
         </div>
 
+    </div>
+    <div class="modal fade" id="removeVLANConfirmationModal" tabindex="-1" role="dialog" aria-labelledby="removeVLANConfirmationLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="removeVLANConfirmationLabel">Are You Sure?</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                By clicking 'Remove' all VLANs listed in the 'Vlans' tab will be removed from the VLANs configlet of the devices listed in the 'Day 2 Target Devices' Tab?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-danger" data-dismiss="modal" data-toggle="modal" data-target="#deployModal" onclick="run(3)">Remove</button>
+            </div>
+            </div>
+        </div>
     </div>
     <div class="modal fade" id="uploadModal" tabindex="-1" role="dialog" aria-labelledby="uploadModalLabel" aria-hidden="true">
         <div class="modal-dialog" role="document">
