@@ -1125,7 +1125,8 @@ def run_script(operation=None,autoexec=None,cvpuser=None,cvppass=None):
     global logger
     global telemetry_statement
     logger.info("Parsing spreadsheet")
-    info_location = "./workbook.xls"
+    list_of_files = glob.glob('./workbooks/workbook*.xls')
+    info_location = max(list_of_files, key=os.path.getctime)
     leafs = parseLeafInfoExcel(info_location, logger)
     if leafs is None:
         logger.error("FAILED: Unable to parse leafs from spreadsheet.")
