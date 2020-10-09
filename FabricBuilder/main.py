@@ -24,6 +24,8 @@ from OrchestratorHelpers.template_parsers import *
 from OrchestratorHelpers.cvp_operations import *
 from OrchestratorHelpers.configletModifiers import *
 from OrchestratorHelpers.main_helpers import *
+import glob, os
+from datetime import datetime
 
 #import parellelism libraries
 # from Queue import Queue
@@ -86,18 +88,16 @@ class Handler(object):
 
     @cherrypy.expose
     def readfile(self):
-        with xlrd.open_workbook('workbook.xls') as f:
-            
-            
-            
+        list_of_files = glob.glob('./workbooks/workbook*.xls') # * means all if need specific format then *.csv
+        latest_file = max(list_of_files, key=os.path.getctime)
+
+        with xlrd.open_workbook(latest_file) as f:    
             toReturn = {}
             def format(v):
                 if type(v) == float:
                     return {'type':'text','title':int(val), 'width':200 }
                 else:
                     return {'type':'text','title':v, 'width':200 }
-                
-            
 
             for n in range(0, f.nsheets):
                 _sheet=f.sheet_by_index(n)
@@ -112,8 +112,7 @@ class Handler(object):
     @cherrypy.expose
     @cherrypy.tools.json_out()
     @cherrypy.tools.json_in()
-    def writefile(self):
-
+    def writefile(self):        
         result = {"operation": "request", "result": "success"}
         wb = xlwt.Workbook()
         input_json = cherrypy.request.json
@@ -125,8 +124,15 @@ class Handler(object):
             for r, row in enumerate(data):
                 for c, v in enumerate(row):
                     ws.write(r,c,v)
-        
-        wb.save('workbook.xls')
+
+        excel_file_name = "./workbooks/workbook.{}.xls".format(int(datetime.now().timestamp()))
+        wb.save(excel_file_name)
+
+        list_of_files = glob.glob('./workbooks/workbook.*.xls')
+        if len(list_of_files) > 50:
+            oldest_file = min(list_of_files, key=os.path.getctime)
+            os.remove(oldest_file)
+
         # Responses are serialized to JSON (because of the json_out decorator)
         return result
     
@@ -137,7 +143,8 @@ class Handler(object):
         result = {"operation": "request", "result": "success"}
 
         size = 0
-        f = open("workbook.xls", "wb")
+        excel_file_name = "./workbooks/workbook.{}.xls".format(int(datetime.now().timestamp()))
+        f = open(excel_file_name, "wb")
         
         
         while True:
@@ -1117,13 +1124,6 @@ def run_script(operation=None,autoexec=None,cvpuser=None,cvppass=None):
     global global_options
     global logger
     global telemetry_statement
-    # import time
-    # logger.info("bleh")
-    # time.sleep(5)
-    # logger.info("bleh")
-    # time.sleep(5)
-    # logger.info("bleh")
-    # return
     logger.info("Parsing spreadsheet")
     info_location = "./workbook.xls"
     leafs = parseLeafInfoExcel(info_location, logger)
