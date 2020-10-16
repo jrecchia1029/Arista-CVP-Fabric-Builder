@@ -557,7 +557,7 @@ class Switch():
                         interface_section += "   vrf {}\n".format(vrf)
                         interface_section += "   ip address {}\n".format(nat_ip_address)
                         interface_section += "!\n"
-                        nat_config += "ip address virtual source-nat vrf {} address {}\n!\n".format(vrf, nat_ip_address)
+                        nat_config += "ip address virtual source-nat vrf {} address {}\n!\n".format(vrf, nat_ip_address.split("/")[0])
 
                 vxlan_interface_section += "\n!"
                 port_channel_section += "\n!"
@@ -1003,7 +1003,7 @@ class Switch():
             interface_config += "   vrf {}\n".format(vrf)
             interface_config += "   ip address {}\n".format(nat_ip)
             interface_config += "!\n"
-            nat_details += "ip address virtual source-nat vrf {} address {}\n".format(vrf, nat_ip)
+            nat_details += "ip address virtual source-nat vrf {} address {}\n".format(vrf, nat_ip.split("/")[0])
         nat_config = interface_config + nat_details
         return nat_config
 
