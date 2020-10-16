@@ -377,7 +377,7 @@ class Switch():
                     underlay_source_interface="Loopback0",
                     router_id=None, peer_group_name=None, mlag_peer_group_name="MLAG-IPv4-UNDERLAY-PEER",
                     update_wait_install=True, underlay_pwd_hash=None, overlay_pwd_hash=None, max_routes=0, bfd=True, vrfs=None, role=None,
-                    mlag_peer_link=None, route_map=None, prefix_lists=None, nat_id=None):
+                    mlag_peer_link=None, route_map=None, prefix_lists=None):
         """
         Args
             asn ( int ) --> asn number
@@ -512,7 +512,7 @@ class Switch():
                     route_target = vrf_info["Route Target"]
                     vlan = vrf_info["Vlan"]
                     vni = vrf_info["VNI"]
-                    nat_address_range = vrf_info["NAT Address Range"].strip() if vrf_info["NAT Address Range"].strip() != "" else None
+                    nat_ip_address = vrf_info["NAT IP Address"]
                     nat_interface = vrf_info["NAT Interface"].strip() if vrf_info["NAT Interface"].strip() != "" else None
                     vrf_section += "vrf instance {}\n".format(vrf)
                     vrf_section += "!\n"
@@ -552,13 +552,12 @@ class Switch():
                     ibgp_section += "!\n"
                     vxlan_interface_section += "   vxlan vrf {} vni {}\n".format(vrf, vni)
 
-                    if nat_id is not None and nat_address_range is not None and nat_interface is not None:
-                        nat_address = list(ipaddress.ip_network(nat_address_range).hosts())[nat_id-1]
+                    if nat_ip_address is not None and nat_interface is not None:
                         interface_section += "interface {}\n".format(nat_interface)
                         interface_section += "   vrf {}\n".format(vrf)
-                        interface_section += "   ip address {}/32\n".format(nat_address)
+                        interface_section += "   ip address {}\n".format(nat_ip_address)
                         interface_section += "!\n"
-                        nat_config += "ip address virtual source-nat vrf {} address {}\n!\n".format(vrf, nat_address)
+                        nat_config += "ip address virtual source-nat vrf {} address {}\n!\n".format(vrf, nat_ip_address)
 
                 vxlan_interface_section += "\n!"
                 port_channel_section += "\n!"
@@ -570,7 +569,6 @@ class Switch():
                 bgp_underlay_config.insert(0, vrf_section)
                 bgp_underlay_config.insert(0, vlan_section)
                 bgp_underlay_config.append(ibgp_section)
-
 
 
         return "\n".join(bgp_underlay_config)
@@ -995,18 +993,17 @@ class Switch():
 
         return "\n".join([vlan_config, interface_config, vxlan_config, bgp_config])
 
-    def build_nat_config(self, vrfs, nat_id):
+    def build_nat_config(self, vrfs, nat_ip):
         interface_config = ""
         nat_details = ""
         for vrf, details in vrfs.items():
-            if details["NAT Address Range"].strip() == "" or details["NAT Interface"].strip() == "":
+            if details["NAT Interface"].strip() == "":
                 continue
-            nat_ip_address = list(ipaddress.IPv4Network(details["NAT Address Range"]).hosts())[int(nat_id)]
             interface_config += "interface {}\n".format(details["NAT Interface"])
             interface_config += "   vrf {}\n".format(vrf)
-            interface_config += "   ip address {}/32\n".format(nat_ip_address)
+            interface_config += "   ip address {}\n".format(nat_ip)
             interface_config += "!\n"
-            nat_details += "ip address virtual source-nat vrf {} address {}\n".format(vrf, nat_ip_address)
+            nat_details += "ip address virtual source-nat vrf {} address {}\n".format(vrf, nat_ip)
         nat_config = interface_config + nat_details
         return nat_config
 

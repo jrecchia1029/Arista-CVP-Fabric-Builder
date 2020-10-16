@@ -490,8 +490,8 @@ def deployL3LSLeaf(leaf):
                             tmp_vrf_info["VNI"] = vrf_info["VNI"]
                             tmp_vrf_info["SVI Address Range"] = vrf_info["SVI Address Range"]
                             tmp_vrf_info["Route Target"] = vrf_info["Route Target"]
-                            tmp_vrf_info["NAT Address Range"] = vrf_info["NAT Address Range"]
                             tmp_vrf_info["NAT Interface"] = vrf_info["NAT Interface"]
+                            tmp_vrf_info["NAT IP Address"] = leaf.nat_ip
                             
                             vrf_rd = vrf_info["Route Distinguisher"]
                             option_decoder = {"Underlay Address":leaf.underlay_address.split("/")[0],
@@ -506,7 +506,7 @@ def deployL3LSLeaf(leaf):
                                                     bgp_overlay_neighbor_info, 
                                                     underlay_source_interface=underlay_source_interface, peer_group_name=peer_group_name,
                                                     mlag_peer_group_name=mlag_peer_group_name, underlay_pwd_hash=underlay_pwd_hash, overlay_pwd_hash=overlay_pwd_hash,
-                                                    bfd=bfd, vrfs=vrfs_info, role=role, mlag_peer_link=mlag_port_channel, nat_id=leaf.nat_id)
+                                                    bfd=bfd, vrfs=vrfs_info, role=role, mlag_peer_link=mlag_port_channel)
                     logger.debug("Successfully generated EVPN control plane configuration for {}".format(leaf.hostname))
                 elif control_plane == "her":
                     logger.debug("Building Overlay Control Plane for {} using HER".format(leaf.hostname))
@@ -533,10 +533,10 @@ def deployL3LSLeaf(leaf):
                 logger.error("Error: {}".format(str(e)))
 
             try:
-                if leaf.nat_id is not None:
+                if leaf.nat_ip is not None:
                     #Build NAT Configlet
                     vrfs = global_options["Vrfs"]
-                    nat_config = switch.build_nat_config(vrfs, leaf.nat_id)
+                    nat_config = switch.build_nat_config(vrfs, leaf.nat_ip)
                     if nat_config != "":
                         configlet_name = configlet_prefix + "NAT"
                         logger.debug("Updating {} configlet in CVP".format(configlet_name))

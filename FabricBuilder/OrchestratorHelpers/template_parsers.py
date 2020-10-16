@@ -47,10 +47,10 @@ def parseLeafInfoExcel(leaf_info_file, logger):
             spine_connection_info[4] = { "local": {"Interface": leaf_info["Spine 4 - Local Interface"].strip(),"IP Address": leaf_info["Spine 4 - Local IP Address"].strip()},
                 "remote":{"Interface": leaf_info["Spine 4 - Remote Interface"].strip(),"IP Address": leaf_info["Spine 4 - Remote IP Address"].strip(), "Hostname": None}}
 
-            nat_id = int(leaf_info["NAT ID"].strip()) if leaf_info["NAT ID"].strip() != "" else None
+            nat_ip = leaf_info["NAT IP Address"].strip() if leaf_info["NAT IP Address"].strip() != "" else None
             image_bundle = leaf_info["Image Bundle"].strip() if leaf_info["Image Bundle"].strip() != "" else None
             leafs.append(Leaf(serial_number, container_name, hostname, mgmt_address, mgmt_interface,
-            mlag_peer, mlag_interfaces, asn, underlay_address, overlay_address, spine_connection_info, nat_id, image_bundle
+            mlag_peer, mlag_interfaces, asn, underlay_address, overlay_address, spine_connection_info, nat_ip, image_bundle
             ))
         except KeyError as e:
             logger.error("Unable to find column: {} in 'Leaf Info' sheet.".format(str(e)))
@@ -229,7 +229,6 @@ def parseVrfs(general_info_file, logger):
                 "Vlan": int(vrf["Vlan"]),
                 "SVI Address Range": vrf["SVI Address Range"].strip(),
                 "VNI": int(vrf["VNI"]),
-                "NAT Address Range": vrf["NAT Address Range"].strip(),
                 "NAT Interface": vrf["NAT Loopback Interface"].strip()
             }
         except KeyError as e:
